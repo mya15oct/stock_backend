@@ -1,4 +1,4 @@
-import { Stock, PortfolioItem } from '@stock-portfolio/shared'
+import { Stock, PortfolioItem } from '../types/shared'
 import stocksData from '../data/stocks.json'
 import portfolioData from '../data/portfolio.json'
 

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { DividendEvent } from '@stock-portfolio/shared'
+import { DividendEvent } from '../types/shared'
 
 const mockDividendEvents: DividendEvent[] = [
   {

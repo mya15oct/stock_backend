@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { DataService } from '../services/dataService'
-import { ApiResponse } from '@stock-portfolio/shared'
+import { ApiResponse } from '../types/shared'
 
 export class PortfolioController {
   static async getPortfolio(req: Request, res: Response) {
