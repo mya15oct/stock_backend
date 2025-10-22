@@ -15,7 +15,6 @@ pnpm-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
-.env.example
 
 # TypeScript build outputs
 dist/
@@ -167,16 +166,14 @@ temp/
 # Docker / Container
 # ============================================
 
-docker-compose.yml
+# Dockerfile templates - keep committed ones only
+# docker-compose.yml
 
 # ============================================
-# Project Structure
+# ETL Pipeline - Keep source structure
 # ============================================
 
-etl/Dockerfile
-etl/pipelines/
-etl/processors/
-etl/schedulers/
-expressjs-server/
-redis/
-restapi-server/
+# Only ignore build artifacts, not source code
+# etl/pipelines/
+# etl/processors/
+# etl/schedulers/
