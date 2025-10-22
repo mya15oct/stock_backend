@@ -15,6 +15,7 @@ pnpm-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.example
 
 # TypeScript build outputs
 dist/
@@ -161,3 +162,21 @@ temp/
 # Backup files
 *.backup
 *.bak
+
+# ============================================
+# Docker / Container
+# ============================================
+
+docker-compose.yml
+
+# ============================================
+# Project Structure
+# ============================================
+
+etl/Dockerfile
+etl/pipelines/
+etl/processors/
+etl/schedulers/
+expressjs-server/
+redis/
+restapi-server/
