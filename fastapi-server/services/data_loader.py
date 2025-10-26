@@ -1,17 +1,39 @@
 import pandas as pd
 import json
-import os
 import subprocess
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 import numpy as np
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+CURRENT_FILE_PATH = Path(__file__).resolve()
+ENV_PATH = CURRENT_FILE_PATH.parent.parent / ".env.local"
+load_dotenv(ENV_PATH)
 
 class StockDataLoader:
     """Load real stock data from CSV files"""
 
     def __init__(self, ticker: str = "APP", data_dir: str = "./data"):
+        # Validate ticker: only A-Z, 0-9, max with 5 chars
+        if not ticker or not isinstance(ticker, str) or len(ticker) > 5:
+            raise ValueError("Invalid ticker format")
+        if not ticker.isalnum():
+            raise ValueError("Ticker must contain only alphanumeric characters")
         self.ticker = ticker
         self.data_dir = data_dir
+
+        # Database configuration
+        self.DB_CONFIG = {
+            "host": os.getenv("DB_HOST"),
+            "port": os.getenv("DB_PORT"),
+            "dbname": os.getenv("DB_NAME"),
+            "user": os.getenv("DB_USER"),
+            "password": os.getenv("DB_PASSWORD")
+        }
 
     def _file_exists(self, filename: str) -> bool:
         """Check if CSV file exists"""
@@ -86,21 +108,11 @@ class StockDataLoader:
 
     def get_company_profile(self) -> Dict[str, Any]:
         """Load company profile from PostgreSQL database"""
-        import psycopg2
-        from psycopg2.extras import RealDictCursor
         
-        # Database configuration
-        DB_CONFIG = {
-            "host": "localhost",
-            "port": 5432,
-            "dbname": "Web_quan_li_danh_muc",
-            "user": "postgres",
-            "password": "123456"
-        }
         
         try:
             print(f"[DEBUG] Querying database for ticker: {self.ticker}")
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = psycopg2.connect(**self.DB_CONFIG)
             cursor = conn.cursor(cursor_factory=RealDictCursor)
             
             # Query company data from database

@@ -2,15 +2,21 @@ import requests
 import psycopg2
 from psycopg2.extras import execute_values
 import re
+import os
+from dotenv import load_dotenv
+from pathlib import Path
 
-API_KEY = "IEQFOH4I4NLWHYHY" 
-SYMBOL = "IBM"
+CURRENT_FILE_PATH = Path(__file__).resolve() 
+ENV_PATH = CURRENT_FILE_PATH.parent.parent / ".env.local" 
+load_dotenv(ENV_PATH)
+
+API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 DB_CONFIG = {
-    "host": "localhost",
-    "port": 5432,
-    "dbname": "Web_quan_li_danh_muc",
-    "user": "postgres",
-    "password": "123456"
+    "host": os.getenv("DB_HOST"),
+    "port": os.getenv("DB_PORT"),
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD")
 }
 
 def normalize_item_name(name: str) -> str:
@@ -96,4 +102,24 @@ def import_all_statements(symbol: str, api_key: str):
     conn.close()
 
 if __name__ == "__main__":
-    import_all_statements(SYMBOL, API_KEY)
+    top_companies = [
+        "AAPL",    # Apple
+        "MSFT",    # Microsoft
+        "GOOGL",   # Alphabet (Google)
+        "AMZN",    # Amazon
+        "NVDA",    # Nvidia
+        "META",    # Meta Platforms
+        "TSLA",    # Tesla
+        "BRK-B",   # Berkshire Hathaway
+        "JNJ",     # Johnson & Johnson
+        "JPM",     # JPMorgan Chase (không có)
+        "IBM"      # IBM (Công ty ban đầu)
+    ]
+    print(f"import data for {len(top_companies)} companies...")
+    for company_symbol in top_companies: 
+        print(f"--- Đang import dữ liệu cho: {company_symbol} ---")
+        import_all_statements(company_symbol, API_KEY)
+        print(f"--- Hoàn thành import cho: {company_symbol} ---")
+
+    print("Hoàn thành quá trình import dữ liệu.")
+
