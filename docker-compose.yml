@@ -14,7 +14,9 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../sql/Database.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./fastapi-server/sql/Database.sql:/docker-entrypoint-initdb.d/01-database.sql
+      - ./fastapi-server/sql/financial_data.sql:/docker-entrypoint-initdb.d/02-financial.sql
+      - ./fastapi-server/sql/market_data.sql:/docker-entrypoint-initdb.d/03-market.sql
     networks:
       - stock_network
     healthcheck:
