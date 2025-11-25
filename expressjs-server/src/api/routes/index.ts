@@ -13,8 +13,6 @@ import { createStockRouter } from "./stocks.routes";
 import { createPortfolioRouter } from "./portfolio.routes";
 import { createDividendRouter } from "./dividends.routes";
 import { createFinancialsRouter } from "./financials.routes";
-import { createBarsRouter } from "./bars.routes";
-import { PythonFinancialClient } from "../../infrastructure/external";
 
 export interface RoutesDependencies {
   stockController: StockController;
@@ -24,7 +22,6 @@ export interface RoutesDependencies {
 
 export const createApiRoutes = (dependencies: RoutesDependencies): Router => {
   const router = Router();
-  const pythonClient = new PythonFinancialClient();
 
   // Mount routes
   router.use("/stocks", createStockRouter(dependencies.stockController));
@@ -37,7 +34,6 @@ export const createApiRoutes = (dependencies: RoutesDependencies): Router => {
     createDividendRouter(dependencies.dividendController)
   );
   router.use("/financials", createFinancialsRouter());
-  router.use("/bars", createBarsRouter(pythonClient));
 
   // Health check
   router.get("/health", (req, res) => {

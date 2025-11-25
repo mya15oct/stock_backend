@@ -39,34 +39,38 @@ export class StockService {
   /**
    * Get detailed stock information by ticker
    */
-  async getStockByTicker(ticker: string): Promise<any | null> {
+  async getStockByTicker(ticker: string): Promise<Stock | null> {
     try {
-      const [profileResult, quoteResult, financialsResult] = await Promise.allSettled([
-        this.financialClient.getProfile(ticker),
+      const [quote, profile] = await Promise.all([
         this.financialClient.getQuote(ticker),
-        this.financialClient.getFinancials(),
+        this.financialClient.getProfile(ticker),
       ]);
 
-      if (profileResult.status !== "fulfilled" || !profileResult.value) {
-        logger.warn(`Profile not available for ticker: ${ticker}`);
+      if (!quote || !profile) {
+        logger.warn(`Stock data not available for ticker: ${ticker}`);
         return null;
       }
 
-      const profile = profileResult.value;
-      const quote =
-        quoteResult.status === "fulfilled" && quoteResult.value
-          ? quoteResult.value
-          : null;
-      const financials =
-        financialsResult.status === "fulfilled" && financialsResult.value
-          ? financialsResult.value
-          : null;
-
-      return {
-        profile,
-        quote,
-        financials,
+      const stock: Stock = {
+        ticker: profile.ticker || ticker.toUpperCase(),
+        name: profile.name || "Unknown Company",
+        price: quote.currentPrice || 0,
+        change: quote.change || 0,
+        changePercent: quote.percentChange || 0,
+        volume: 1000000, // Mock - not in current data
+        marketCap: profile.marketCap || 0,
+        pe: 0, // Will be filled from ratios
+        eps: 0, // Will be filled from earnings
+        high52: quote.high || 0,
+        low52: quote.low || 0,
+        sector: profile.industry || "Technology",
+        industry: profile.industry || "Technology",
+        description: `${profile.name} is a leading company in the ${profile.industry} sector.`,
+        website: profile.website || "",
+        logo: profile.logo || "",
       };
+
+      return stock;
     } catch (error) {
       logger.error(`Error getting stock data for ${ticker}`, error);
       throw new NotFoundError(`Stock ${ticker}`);

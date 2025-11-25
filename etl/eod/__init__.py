@@ -1,4 +1,0 @@
-"""
-EOD pipeline package placeholder.
-"""
-

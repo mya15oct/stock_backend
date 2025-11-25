@@ -3,10 +3,7 @@
  * Initializes and starts the Express server with Dependency Injection
  */
 
-import "./config/env";
-
 import express from "express";
-import { createServer } from "http";
 import cors from "cors";
 import helmet from "helmet";
 import { config } from "./infrastructure/config";
@@ -16,7 +13,6 @@ import { logger } from "./utils";
 import {
   PythonFinancialClient,
   MockPortfolioRepository,
-  RedisStreamClient,
 } from "./infrastructure";
 
 // Core Layer (Services)
@@ -24,7 +20,6 @@ import {
   StockService,
   PortfolioService,
   DividendService,
-  WebSocketService,
 } from "./core/services";
 
 // API Layer (Controllers & Routes)
@@ -123,54 +118,21 @@ const createApp = () => {
 };
 
 /**
- * Start Server with WebSocket support
+ * Start Server
  */
-const startServer = async () => {
+const startServer = () => {
   const app = createApp();
-  const httpServer = createServer(app);
   const PORT = config.port;
 
-  // Initialize Redis and WebSocket
-  try {
-    logger.info("Initializing Redis connection...");
-    const redisClient = new RedisStreamClient();
-    await redisClient.connect();
-
-    const wsService = new WebSocketService(redisClient);
-    wsService.initialize(httpServer);
-
-    // Graceful shutdown
-    process.on("SIGTERM", async () => {
-      logger.info("SIGTERM received, shutting down gracefully...");
-      await wsService.close();
-      httpServer.close();
-      process.exit(0);
-    });
-
-    process.on("SIGINT", async () => {
-      logger.info("SIGINT received, shutting down gracefully...");
-      await wsService.close();
-      httpServer.close();
-      process.exit(0);
-    });
-  } catch (error) {
-    logger.error(`Failed to initialize WebSocket service: ${error}`);
-    // Continue without WebSocket if Redis is unavailable
-  }
-
-  httpServer.listen(PORT, () => {
+  app.listen(PORT, () => {
     logger.success(`🚀 Backend server running on port ${PORT}`);
     logger.info(`📝 Environment: ${config.nodeEnv}`);
     logger.info(`🔗 CORS Origins: ${config.corsOrigins.join(", ")}`);
     logger.info(`🐍 Python API: ${config.pythonApiUrl}`);
-    logger.info(`📡 WebSocket server enabled`);
   });
 };
 
 // Start the server
-startServer().catch((error) => {
-  logger.error(`Failed to start server: ${error}`);
-  process.exit(1);
-});
+startServer();
 
 export { createApp };
