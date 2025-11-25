@@ -4,13 +4,13 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copy package files
-COPY expressjs-server/package*.json ./
+COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
 # Copy source code
-COPY expressjs-server/ .
+COPY . .
 
 # Build TypeScript
 RUN npm run build

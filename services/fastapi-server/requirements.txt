@@ -1,7 +1,7 @@
 requests>=2.31.0
 pandas>=2.0.0
 python-dotenv>=1.0.0
-fastapi>=0.104.0fastapi
+fastapi>=0.104.0
 uvicorn
 sqlalchemy
 psycopg2-binary
@@ -10,5 +10,5 @@ pydantic-settings
 python-dotenv
 redis
 kafka-python
-websocket-clientdis>=5.0.0
+websocket-client>=1.0.0
 yfinance>=0.2.43
