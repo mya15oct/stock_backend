@@ -2,7 +2,30 @@
  * Environment Configuration with Validation
  */
 
+import fs from "fs";
+import path from "path";
+import dotenv from "dotenv";
 import { z } from "zod";
+
+const candidateEnvPaths = [
+  path.resolve(process.cwd(), ".env"),
+  path.resolve(process.cwd(), "..", ".env"),
+  path.resolve(__dirname, "../../../.env"),
+  path.resolve(__dirname, "../../.env"),
+];
+
+let envLoaded = false;
+for (const envPath of candidateEnvPaths) {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+    envLoaded = true;
+    break;
+  }
+}
+
+if (!envLoaded) {
+  dotenv.config();
+}
 
 // Environment variable schema
 const envSchema = z.object({

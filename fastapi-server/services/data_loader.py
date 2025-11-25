@@ -11,8 +11,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 CURRENT_FILE_PATH = Path(__file__).resolve()
-ENV_PATH = CURRENT_FILE_PATH.parent.parent / ".env.local"
-load_dotenv(ENV_PATH)
+ENV_PATH = CURRENT_FILE_PATH.parents[2] / ".env"
+if ENV_PATH.exists():
+    load_dotenv(ENV_PATH)
 
 class StockDataLoader:
     """Load real stock data from CSV files"""

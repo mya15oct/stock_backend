@@ -11,9 +11,10 @@ try:
 except ImportError:  # pragma: no cover - support running as a script
     from .import_stock_prices import import_eod_prices_for_symbol
 
-CURRENT_FILE_PATH = Path(__file__).resolve() 
-ENV_PATH = CURRENT_FILE_PATH.parent.parent / ".env.local" 
-load_dotenv(ENV_PATH)
+CURRENT_FILE_PATH = Path(__file__).resolve()
+ENV_PATH = CURRENT_FILE_PATH.parents[2] / ".env"
+if ENV_PATH.exists():
+    load_dotenv(ENV_PATH)
 
 API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 DB_CONFIG = {

@@ -9,7 +9,7 @@ import sys
 
 # Set environment variables if not set
 if not os.getenv("ALPHA_VANTAGE_API_KEY"):
-    print("⚠️  ALPHA_VANTAGE_API_KEY not set. Please set it in .env.local or environment")
+    print("⚠️  ALPHA_VANTAGE_API_KEY not set. Please set it in the root .env or environment")
     print("   You can get a free API key from: https://www.alphavantage.co/support/#api-key")
     sys.exit(1)
 
