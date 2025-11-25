@@ -4,7 +4,7 @@ This module fetches historical price data from Yahoo Finance via yfinance
 and loads it into the `market_data_oltp.stock_eod_prices` table. It follows
 the same configuration approach used by other service modules (see
 `data.py` and `data_loader.py`) by reading database credentials from the
-`.env.local` file.
+root-level `.env` file.
 
 Usage:
     python services/import_stock_prices.py --tickers IBM MSFT AAPL --years 5
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables in the same fashion as other service modules
 CURRENT_FILE_PATH = Path(__file__).resolve()
-ENV_PATH = CURRENT_FILE_PATH.parent.parent / ".env.local"
+ENV_PATH = CURRENT_FILE_PATH.parents[2] / ".env"
 if ENV_PATH.exists():
     load_dotenv(ENV_PATH)
 

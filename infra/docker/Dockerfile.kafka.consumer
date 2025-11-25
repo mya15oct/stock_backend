@@ -7,8 +7,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
-COPY producer.py .
-COPY .env .
+COPY consumer_database.py .
 
-# Chạy producer
-CMD ["python", "producer.py"]
+
+# Chạy consumer
+CMD ["python", "consumer_database.py"]

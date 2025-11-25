@@ -6,12 +6,17 @@ import json
 import threading
 import time
 import os
+from pathlib import Path
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from root .env if available
+ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
+if ENV_PATH.exists():
+    load_dotenv(ENV_PATH)
+else:
+    load_dotenv()
 
 # Configuration
 ALPACA_WEBSOCKET_URL = "wss://stream.data.alpaca.markets/v2/iex"

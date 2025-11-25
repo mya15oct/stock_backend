@@ -4,14 +4,19 @@ Kafka Consumer #1 - Database Persistence
 """
 import json
 import os
+from pathlib import Path
 import psycopg2
 from psycopg2.extras import execute_batch
 from kafka import KafkaConsumer
 from datetime import datetime
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from root .env if available
+ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
+if ENV_PATH.exists():
+    load_dotenv(ENV_PATH)
+else:
+    load_dotenv()
 
 # Kafka Configuration
 KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9093')
