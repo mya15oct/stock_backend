@@ -1,6 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routers import quote_router, financial_router
+from api.routers import (
+    quote_router,
+    financial_router,
+    profile_router,
+    price_history_router,
+    dividends_router,
+    news_router,
+    earnings_router,
+    financials_legacy_router,
+    refresh_router,
+    summary_router,
+    companies_router
+)
 from config.settings import settings
 from streaming.manager import manager
 import logging
@@ -38,7 +50,16 @@ app.add_middleware(
 
 # Include Routers
 app.include_router(quote_router.router)
+app.include_router(profile_router.router)
+app.include_router(price_history_router.router)
+app.include_router(dividends_router.router)
+app.include_router(news_router.router)
+app.include_router(earnings_router.router)
+app.include_router(financials_legacy_router.router)
 app.include_router(financial_router.router)
+app.include_router(companies_router.router)
+app.include_router(refresh_router.router)
+app.include_router(summary_router.router)
 
 @app.get("/", tags=["System"])
 async def root():
