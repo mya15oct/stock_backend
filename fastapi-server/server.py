@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from services.data_loader import StockDataLoader
 import uvicorn
 from typing import Optional, Dict, Any, List, Literal
 from pydantic import BaseModel, Field
@@ -181,15 +180,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize data loader
-loader = StockDataLoader()
 
 @app.get("/", tags=["System"], summary="Health Check")
 async def root():
     """🏥 API health check and available endpoints"""
     return {
         "message": "Stock Data API is running",
-        "ticker": loader.ticker,
         "endpoints": [
             "/quote",
             "/profile",
@@ -223,10 +219,10 @@ async def get_quote(ticker: str = Query(..., description="Stock ticker symbol", 
                 
                 stock_result = cur.fetchone()
                 if not stock_result:
-                    # Fallback to CSV loader if not in database
-                    temp_loader = StockDataLoader(ticker.upper())
-                    data = temp_loader.get_quote()
-                    return {"success": True, "data": data}
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Ticker {ticker} not found in database",
+                    )
                 
                 stock_id = stock_result['stock_id']
                 
@@ -248,10 +244,10 @@ async def get_quote(ticker: str = Query(..., description="Stock ticker symbol", 
                 latest = cur.fetchone()
                 
                 if not latest:
-                    # Fallback to CSV loader if no price data
-                    temp_loader = StockDataLoader(ticker.upper())
-                    data = temp_loader.get_quote()
-                    return {"success": True, "data": data}
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"No price data available for {ticker}",
+                    )
                 
                 # Get previous close for change calculation
                 cur.execute(f"""
@@ -292,9 +288,51 @@ async def get_company_profile(ticker: str = Query(..., description="Stock ticker
     """🏢 Get company profile with industry, sector, and description"""
     try:
         logger.info(f"Fetching profile for {ticker}")
-        temp_loader = StockDataLoader(ticker.upper())
-        data = temp_loader.get_company_profile()
-        return {"success": True, "data": data}
+        conn = psycopg2.connect(**DB_CONFIG)
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    f"""
+                    SELECT
+                        c.company_id,
+                        c.company_name,
+                        c.exchange,
+                        c.currency,
+                        c.sector,
+                        s.stock_name,
+                        s.exchange AS stock_exchange
+                    FROM {FINANCIAL_DATA_SCHEMA}.company c
+                    LEFT JOIN {MARKET_DATA_SCHEMA}.stocks s
+                        ON s.company_id = c.company_id
+                    WHERE c.company_id = %s
+                    """,
+                    (ticker.upper(),),
+                )
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Profile not found for {ticker}",
+                    )
+                data = {
+                    "name": row["company_name"],
+                    "ticker": row["company_id"],
+                    "exchange": row.get("stock_exchange") or row.get("exchange") or "NYSE",
+                    "country": "US",
+                    "currency": row.get("currency") or "USD",
+                    "industry": row.get("sector") or "Unknown",
+                    "marketCap": 0.0,
+                    "ipoDate": "",
+                    "logo": "",
+                    "sharesOutstanding": 0.0,
+                    "website": "",
+                    "phone": "",
+                }
+                return {"success": True, "data": data}
+        finally:
+            conn.close()
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching profile: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -320,11 +358,10 @@ async def get_price_history(
 
                 stock_result = cur.fetchone()
                 if not stock_result:
-                    # Fallback to CSV loader if not in database
-                    logger.warning(f"Stock {ticker} not found in database, using CSV loader")
-                    temp_loader = StockDataLoader(ticker.upper())
-                    data = temp_loader.get_price_history(period)
-                    return {"success": True, "data": data}
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Ticker {ticker} not found in database",
+                    )
 
                 stock_id = stock_result['stock_id']
 
@@ -447,26 +484,20 @@ async def get_price_history(
 @app.get("/dividends", tags=["Company Info"], summary="Get Dividend History")
 async def get_dividends(ticker: str = Query(..., description="Stock ticker symbol", example="IBM")):
     """💰 Get historical dividend payments"""
-    try:
-        logger.info(f"Fetching dividends for {ticker}")
-        temp_loader = StockDataLoader(ticker.upper())
-        data = temp_loader.get_dividends()
-        return {"success": True, "data": data}
-    except Exception as e:
-        logger.error(f"Error fetching dividends: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    logger.info("Dividends endpoint requested for %s but ETL data not available.", ticker)
+    raise HTTPException(
+        status_code=404,
+        detail="Dividend history not available. Please ensure ETL has loaded dividend data.",
+    )
 
 @app.get("/news", tags=["Company Info"], summary="Get Company News")
 async def get_news(ticker: str = Query(..., description="Stock ticker symbol", example="IBM"), limit: int = Query(16, description="Number of news articles to return")):
     """📰 Get latest company news and headlines"""
-    try:
-        logger.info(f"Fetching news for {ticker}, limit: {limit}")
-        temp_loader = StockDataLoader(ticker.upper())
-        data = temp_loader.get_news(limit)
-        return {"success": True, "data": data}
-    except Exception as e:
-        logger.error(f"Error fetching news: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    logger.info("News endpoint requested for %s but ETL data not available.", ticker)
+    raise HTTPException(
+        status_code=404,
+        detail="Company news not available. Please ensure ETL has loaded news data.",
+    )
 
 @app.get(
     "/api/financials",
@@ -760,50 +791,35 @@ def transform_financial_data(
 
 @app.get("/financials")
 async def get_financials_legacy():
-    """Get financial statements (legacy endpoint using data loader)"""
-    try:
-        logger.info(f"Fetching financials for {loader.ticker}")
-        data = loader.get_financials()
-        return {"success": True, "data": data}
-    except Exception as e:
-        logger.error(f"Error fetching financials: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Legacy endpoint preserved for backward compatibility."""
+    raise HTTPException(
+        status_code=410,
+        detail="Legacy endpoint removed. Use /api/financials.",
+    )
 
 @app.get("/earnings")
 async def get_earnings():
     """Get earnings data"""
-    try:
-        logger.info(f"Fetching earnings for {loader.ticker}")
-        data = loader.get_earnings()
-        return {"success": True, "data": data}
-    except Exception as e:
-        logger.error(f"Error fetching earnings: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(
+        status_code=410,
+        detail="Earnings endpoint removed. Data must be served from database.",
+    )
 
 @app.post("/refresh")
 async def refresh_data():
     """Refresh data from Finnhub API"""
-    try:
-        logger.info("Refreshing data from Finnhub API...")
-        success = loader.refresh_data()
-        if success:
-            return {"success": True, "message": "Data refreshed successfully"}
-        else:
-            raise HTTPException(status_code=500, detail="Data refresh failed")
-    except Exception as e:
-        logger.error(f"Error refreshing data: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(
+        status_code=410,
+        detail="Refresh endpoint removed. Run ETL pipelines instead.",
+    )
 
 @app.get("/summary")
 async def get_data_summary():
     """Get data summary and status"""
-    try:
-        logger.info("Fetching data summary")
-        data = loader.get_data_summary()
-        return {"success": True, "data": data}
-    except Exception as e:
-        logger.error(f"Error fetching summary: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(
+        status_code=410,
+        detail="Summary endpoint removed. Use ETL tooling for dataset status.",
+    )
 
 @app.get("/api/companies", summary="📋 Get all available companies")
 async def get_companies():

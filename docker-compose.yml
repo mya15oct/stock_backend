@@ -14,9 +14,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./fastapi-server/sql/Database.sql:/docker-entrypoint-initdb.d/01-database.sql
-      - ./fastapi-server/sql/financial_data.sql:/docker-entrypoint-initdb.d/02-financial.sql
-      - ./fastapi-server/sql/market_data.sql:/docker-entrypoint-initdb.d/03-market.sql
+      - ./infra/sql/:/docker-entrypoint-initdb.d/
     networks:
       - stock_network
     healthcheck:
@@ -212,27 +210,32 @@ services:
       postgres:
         condition: service_healthy
 
-  # ETL Service (DISABLED - Optional for scheduled jobs)
-  # etl:
-  #   build:
-  #     context: ./etl
-  #     dockerfile: Dockerfile
-  #   container_name: stock_etl
-  #   restart: unless-stopped
-  #   environment:
-  #     DB_HOST: host.docker.internal
-  #     DB_PORT: 5432
-  #     DB_NAME: ${DB_NAME:-Web_quan_li_danh_muc}
-  #     DB_USER: ${DB_USER:-postgres}
-  #     DB_PASSWORD: ${DB_PASSWORD:-123456}
-  #   volumes:
-  #     - ./etl:/app
-  #   networks:
-  #     - stock_network
-  #   extra_hosts:
-  #     - "host.docker.internal:host-gateway"
-  #   # Run scheduler or manual pipelines
-  #   # command: python schedulers/cron_jobs.py
+  etl:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.etl
+    container_name: stock_etl
+    restart: unless-stopped
+    entrypoint: ["sleep", "infinity"]
+    environment:
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-Web_quan_li_danh_muc}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-123456}
+      ALPHA_VANTAGE_API_KEY: ${ALPHA_VANTAGE_API_KEY:-demo}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    volumes:
+      - .:/app
+    networks:
+      - stock_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
 volumes:
   postgres_data:

@@ -3,12 +3,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Ensure Python can resolve the ETL package
+ENV PYTHONPATH="/app"
+
 # Install dependencies
-COPY requirements.txt .
+COPY etl/requirements.txt .
 RUN pip install --no-cache-dir --default-timeout=300 -r requirements.txt
 
 # Copy ETL scripts
 COPY . .
 
 # Default command (can be overridden in docker-compose)
-CMD ["python", "schedulers/cron_jobs.py"]
+CMD ["sleep", "infinity"]
