@@ -25,15 +25,30 @@ export interface ProfileData {
   name: string;
   ticker: string;
   exchange: string;
-  country: string;
-  currency: string;
-  industry: string;
-  marketCap: number;
-  ipoDate: string;
-  logo: string;
-  sharesOutstanding: number;
-  website: string;
-  phone: string;
+  country?: string;
+  currency?: string;
+  industry?: string;
+  sector?: string;
+  marketCap?: number;
+  market_cap?: number;
+  ipoDate?: string;
+  logo?: string;
+  sharesOutstanding?: number;
+  website?: string;
+  phone?: string;
+  peRatio?: number;
+  pe_ratio?: number;
+  eps?: number;
+  dividendYield?: number;
+  dividend_yield?: number;
+  dividendPerShare?: number;
+  dividend_per_share?: number;
+  exDividendDate?: string;
+  ex_dividend_date?: string;
+  dividendDate?: string;
+  dividend_date?: string;
+  latestQuarter?: string;
+  latest_quarter?: string;
 }
 
 // Price History Data

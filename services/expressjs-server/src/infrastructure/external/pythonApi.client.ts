@@ -81,7 +81,36 @@ export class PythonFinancialClient implements IFinancialClient {
   }
 
   async getProfile(ticker: string = "APP"): Promise<ProfileData | null> {
-    return this.call<ProfileData>(`/api/profile?symbol=${ticker}`);
+    // Get company info with market metrics from /api/companies endpoint
+    const url = `${this.baseUrl}/api/companies`;
+    logger.apiCall(url, "GET");
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        logger.apiError(url, new Error(`HTTP ${response.status}`));
+        return null;
+      }
+
+      const result: any = await response.json();
+      logger.apiSuccess(url);
+      
+      if (result.success && result.companies) {
+        // Find the specific ticker
+        const company = result.companies.find((c: any) => c.ticker === ticker.toUpperCase());
+        if (company) {
+          logger.info(`Found company data for ${ticker}: ${JSON.stringify(company)}`);
+        } else {
+          logger.warn(`Company ${ticker} not found in ${result.companies.length} companies`);
+        }
+        return company || null;
+      }
+      logger.warn(`Invalid response structure from /api/companies`);
+      return null;
+    } catch (error) {
+      logger.apiError(url, error);
+      return null;
+    }
   }
 
   async getPriceHistory(

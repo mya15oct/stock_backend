@@ -28,6 +28,14 @@ export class StockService {
         price: 0,
         sector: company.sector || "Unknown",
         industry: company.industry || undefined,
+        dividendYield: company.dividend_yield || undefined,
+        dividendPerShare: company.dividend_per_share || undefined,
+        exDividendDate: company.ex_dividend_date || undefined,
+        dividendDate: company.dividend_date || undefined,
+        marketCap: company.market_cap || undefined,
+        peRatio: company.pe_ratio || undefined,
+        eps: company.eps || undefined,
+        latestQuarter: company.latest_quarter || undefined,
       }));
 
       return stocks;
@@ -47,28 +55,37 @@ export class StockService {
         this.financialClient.getProfile(ticker),
       ]);
 
-      if (!quote || !profile) {
-        logger.warn(`Stock data not available for ticker: ${ticker}`);
+      if (!quote) {
+        logger.warn(`Stock quote not available for ticker: ${ticker}`);
         return null;
       }
 
+      if (!profile) {
+        logger.warn(`Stock profile not available for ticker: ${ticker}, using quote data only`);
+      }
+
       const stock: Stock = {
-        ticker: profile.ticker || ticker.toUpperCase(),
-        name: profile.name || "Unknown Company",
+        ticker: profile?.ticker || ticker.toUpperCase(),
+        name: profile?.name || "Unknown Company",
         price: quote.currentPrice || 0,
         change: quote.change || 0,
         changePercent: quote.percentChange || 0,
         volume: 1000000, // Mock - not in current data
-        marketCap: profile.marketCap || 0,
-        pe: 0, // Will be filled from ratios
-        eps: 0, // Will be filled from earnings
+        marketCap: profile?.marketCap || profile?.market_cap || 0,
+        pe: profile?.peRatio || profile?.pe_ratio || 0,
+        eps: profile?.eps || 0,
         high52: quote.high || 0,
         low52: quote.low || 0,
-        sector: profile.industry || "Technology",
-        industry: profile.industry || "Technology",
-        description: `${profile.name} is a leading company in the ${profile.industry} sector.`,
-        website: profile.website || "",
-        logo: profile.logo || "",
+        sector: profile?.sector || profile?.industry || "Technology",
+        industry: profile?.industry || "Technology",
+        dividendYield: profile?.dividendYield || profile?.dividend_yield || undefined,
+        dividendPerShare: profile?.dividendPerShare || profile?.dividend_per_share || undefined,
+        exDividendDate: profile?.exDividendDate || profile?.ex_dividend_date || undefined,
+        dividendDate: profile?.dividendDate || profile?.dividend_date || undefined,
+        latestQuarter: profile?.latestQuarter || profile?.latest_quarter || undefined,
+        description: `${profile?.name || ticker} is a leading company in the ${profile?.industry || profile?.sector || 'Technology'} sector.`,
+        website: profile?.website || "",
+        logo: profile?.logo || "",
       };
 
       return stock;

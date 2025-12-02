@@ -5,6 +5,14 @@ export interface Stock {
   price: number;
   sector: string;
   industry?: string;
+  dividendYield?: number;
+  dividendPerShare?: number;
+  exDividendDate?: string;
+  dividendDate?: string;
+  marketCap?: number;
+  peRatio?: number;
+  eps?: number;
+  latestQuarter?: string;
 }
 
 export interface PortfolioPosition {

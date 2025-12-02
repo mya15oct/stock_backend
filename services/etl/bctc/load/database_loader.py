@@ -42,19 +42,71 @@ class BCTCDatabaseLoader:
         industry = overview.get("Industry")
         company_name = overview.get("Name")
         
+        # Extract dividend data
+        dividend_yield = overview.get("DividendYield")
+        dividend_per_share = overview.get("DividendPerShare")
+        ex_dividend_date = overview.get("ExDividendDate")
+        dividend_date = overview.get("DividendDate")
+        
+        # Extract market metrics
+        market_cap = overview.get("MarketCapitalization")
+        pe_ratio = overview.get("PERatio")
+        eps = overview.get("EPS")
+        latest_quarter = overview.get("LatestQuarter")
+        
+        # Convert to proper types (Alpha Vantage returns strings)
+        try:
+            dividend_yield = float(dividend_yield) if dividend_yield and dividend_yield != 'None' else None
+        except (ValueError, TypeError):
+            dividend_yield = None
+            
+        try:
+            dividend_per_share = float(dividend_per_share) if dividend_per_share and dividend_per_share != 'None' else None
+        except (ValueError, TypeError):
+            dividend_per_share = None
+            
+        try:
+            market_cap = int(float(market_cap)) if market_cap and market_cap != 'None' else None
+        except (ValueError, TypeError):
+            market_cap = None
+            
+        try:
+            pe_ratio = float(pe_ratio) if pe_ratio and pe_ratio != 'None' else None
+        except (ValueError, TypeError):
+            pe_ratio = None
+            
+        try:
+            eps = float(eps) if eps and eps != 'None' else None
+        except (ValueError, TypeError):
+            eps = None
+        
         with conn.cursor() as cur:
             cur.execute(
                 """
                 UPDATE financial_oltp.company
                 SET sector = %s,
                     industry = %s,
-                    company_name = COALESCE(%s, company_name)
+                    company_name = COALESCE(%s, company_name),
+                    dividend_yield = %s,
+                    dividend_per_share = %s,
+                    ex_dividend_date = %s,
+                    dividend_date = %s,
+                    market_cap = %s,
+                    pe_ratio = %s,
+                    eps = %s,
+                    latest_quarter = %s
                 WHERE company_id = %s
                 """,
-                (sector, industry, company_name, symbol),
+                (sector, industry, company_name, dividend_yield, dividend_per_share, 
+                 ex_dividend_date if ex_dividend_date and ex_dividend_date != 'None' else None,
+                 dividend_date if dividend_date and dividend_date != 'None' else None,
+                 market_cap, pe_ratio, eps,
+                 latest_quarter if latest_quarter and latest_quarter != 'None' else None,
+                 symbol),
             )
         conn.commit()
-        logger.info("Updated company info for %s: sector=%s, industry=%s", symbol, sector, industry)
+        logger.info("Updated company info for %s: sector=%s, industry=%s, dividend_yield=%s, pe=%s, eps=%s, market_cap=%s", 
+                   symbol, sector, industry, dividend_yield, pe_ratio, eps, market_cap)
 
     def load_statement(
         self,

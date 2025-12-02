@@ -30,7 +30,15 @@ class CompaniesService:
                     company_name as name,
                     sector,
                     industry,
-                    exchange
+                    exchange,
+                    dividend_yield,
+                    dividend_per_share,
+                    ex_dividend_date,
+                    dividend_date,
+                    market_cap,
+                    pe_ratio,
+                    eps,
+                    latest_quarter
                 FROM financial_oltp.company
                 ORDER BY company_name
             """
