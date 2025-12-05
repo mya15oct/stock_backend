@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Query, HTTPException
 from services.quote_service import QuoteService
-from typing import List
 import logging
+from shared.python.utils.validation import (
+    normalize_symbol,
+    parse_symbols_csv,
+    ValidationError,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -12,9 +16,10 @@ async def get_quote(
     ticker: str | None = Query(None, description="Stock ticker symbol", example="IBM"),
     symbol: str | None = Query(None, description="Alias for ticker", example="IBM"),
 ):
-    resolved = (ticker or symbol or "").upper()
-    if not resolved:
-        raise HTTPException(status_code=400, detail="ticker or symbol is required")
+    try:
+        resolved = normalize_symbol(ticker or symbol or "")
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     service = QuoteService()
     try:
@@ -46,11 +51,7 @@ async def get_previous_closes_batch(
     }
     """
     try:
-        # Parse comma-separated symbols
-        symbol_list = [s.strip().upper() for s in symbols.split(',') if s.strip()]
-        
-        if not symbol_list:
-            raise HTTPException(status_code=400, detail="At least one symbol is required")
+        symbol_list = parse_symbols_csv(symbols)
         
         logger.info(f"[quote_router] GET /api/quote/previous-closes - symbols={len(symbol_list)}")
         
@@ -59,6 +60,8 @@ async def get_previous_closes_batch(
         
         logger.info(f"[quote_router] Returning previousCloses for {len(previous_closes)} symbols")
         return {"success": True, "previousCloses": previous_closes}
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except HTTPException:
         raise
     except Exception as e:
@@ -92,11 +95,7 @@ async def get_latest_eod_batch(
     }
     """
     try:
-        # Parse comma-separated symbols
-        symbol_list = [s.strip().upper() for s in symbols.split(',') if s.strip()]
-        
-        if not symbol_list:
-            raise HTTPException(status_code=400, detail="At least one symbol is required")
+        symbol_list = parse_symbols_csv(symbols)
         
         logger.info(f"[quote_router] GET /api/quote/latest-eod - symbols={len(symbol_list)}, auto_fetch={auto_fetch}")
         
@@ -105,6 +104,8 @@ async def get_latest_eod_batch(
         
         logger.info(f"[quote_router] Returning latest EOD data for {len(eod_data)} symbols")
         return {"success": True, "data": eod_data}
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except HTTPException:
         raise
     except Exception as e:

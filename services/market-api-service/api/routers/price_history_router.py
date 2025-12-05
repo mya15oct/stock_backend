@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query, HTTPException
 from services.price_history_service import PriceHistoryService
 import logging
+from shared.python.utils.validation import normalize_symbol, ValidationError
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -25,9 +26,10 @@ async def get_price_history(
     - 5y: Last 5 years
     - max: All available data
     """
-    resolved = (ticker or symbol or "").upper()
-    if not resolved:
-        raise HTTPException(status_code=400, detail="ticker or symbol is required")
+    try:
+        resolved = normalize_symbol(ticker or symbol or "")
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     # Validate period
     valid_periods = ["1d", "5d", "1m", "3m", "6m", "ytd", "1y", "5y", "max"]

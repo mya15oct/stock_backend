@@ -39,7 +39,7 @@ class KafkaMessageConsumer:
                 value_deserializer=lambda m: json.loads(m.decode("utf-8")),
                 key_deserializer=lambda k: k.decode("utf-8") if k else None,
                 auto_offset_reset="earliest",
-                enable_auto_commit=True,
+                enable_auto_commit=settings.KAFKA_ENABLE_AUTO_COMMIT,
                 consumer_timeout_ms=1000,
             )
 
@@ -77,6 +77,9 @@ class KafkaMessageConsumer:
                         json.dumps(message.value, ensure_ascii=False),
                     )
                     callback(message.topic, message.key, message.value)
+                    if not settings.KAFKA_ENABLE_AUTO_COMMIT:
+                        # Commit offsets only after successful processing
+                        self.consumer.commit()
                 except Exception as exc:  # noqa: BLE001
                     logger.error("Error processing message: %s", exc)
 

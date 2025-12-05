@@ -23,9 +23,13 @@ class Settings(BaseSettings):
 
     # Kafka
     KAFKA_BOOTSTRAP_SERVERS: str = load_env("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
+    KAFKA_ENABLE_AUTO_COMMIT: bool = load_env("KAFKA_ENABLE_AUTO_COMMIT", "false").lower() == "true"
 
     # API Keys
     ALPHA_VANTAGE_API_KEY: str = load_env("ALPHA_VANTAGE_API_KEY", "demo")
+
+    # Redis Streams
+    REDIS_STREAM_MAXLEN: int = int(load_env("REDIS_STREAM_MAXLEN", "20000"))
 
     class Config:
         env_file = ".env"

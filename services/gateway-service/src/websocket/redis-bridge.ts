@@ -14,6 +14,7 @@
 import { redisClient } from "../infrastructure/redis/redisClient";
 import { logger } from "../utils";
 import { wrapRedisCall, wrapWsEmit } from "../utils/errorHandler";
+import { normalizeSymbol, ValidationError } from "../utils/validation";
 import {
   GATEWAY_STOCK_TRADES_STREAM,
   GATEWAY_STOCK_BARS_STREAM,
@@ -192,10 +193,13 @@ export class RedisWebSocketBridge {
               continue;
             }
 
-            const symbol: string | undefined = payload?.symbol;
-            if (!symbol) {
+            let symbol: string;
+            try {
+              symbol = normalizeSymbol(payload?.symbol ?? "");
+            } catch (err) {
               logger.warn(
-                `[RedisBridge] Missing symbol in parsed payload for message ${id} on stream ${streamName}`
+                `[RedisBridge] Missing/invalid symbol in payload for message ${id} on stream ${streamName}`,
+                { error: err instanceof ValidationError ? err.message : String(err) }
               );
               await ackMessage();
               continue;

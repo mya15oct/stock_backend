@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query, HTTPException
 from services.candles_service import CandlesService
 import logging
+from shared.python.utils.validation import normalize_symbol, ValidationError
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -24,9 +25,10 @@ async def get_candles(
     - 1h: 1 hour candles
     - 1d: 1 day candles (intraday aggregation)
     """
-    resolved = symbol.upper() if symbol else ""
-    if not resolved:
-        raise HTTPException(status_code=400, detail="symbol is required")
+    try:
+        resolved = normalize_symbol(symbol)
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     
     # Validate timeframe
     valid_timeframes = ["1m", "5m", "15m", "1h", "1d"]

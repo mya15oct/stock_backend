@@ -1,35 +1,42 @@
-const SERVICE_PREFIX = "[gateway-service]";
+const SERVICE_NAME = "gateway-service";
 
 enum LogLevel {
-  INFO = "INFO",
-  WARN = "WARN",
-  ERROR = "ERROR",
+  INFO = "info",
+  WARN = "warn",
+  ERROR = "error",
 }
 
-class Logger {
-  private formatPrefix(level: LogLevel): string {
-    const timestamp = new Date().toISOString();
-    return `${SERVICE_PREFIX} ${timestamp} ${level}`;
-  }
+type ConsoleFn = (...args: unknown[]) => void;
 
-  private log(
-    level: LogLevel,
-    consoleMethod: (...args: unknown[]) => void,
-    args: unknown[]
-  ): void {
-    consoleMethod(this.formatPrefix(level), ...args);
+class Logger {
+  private emit(level: LogLevel, consoleMethod: ConsoleFn, args: unknown[]): void {
+    const [message, ...rest] = args;
+    const payload: Record<string, unknown> = {
+      service: SERVICE_NAME,
+      level,
+      timestamp: new Date().toISOString(),
+      message: typeof message === "string" ? message : String(message),
+    };
+
+    if (rest.length === 1 && typeof rest[0] === "object") {
+      Object.assign(payload, rest[0] as Record<string, unknown>);
+    } else if (rest.length > 0) {
+      payload.meta = rest;
+    }
+
+    consoleMethod(JSON.stringify(payload));
   }
 
   info(...args: unknown[]): void {
-    this.log(LogLevel.INFO, console.log, args);
+    this.emit(LogLevel.INFO, console.log, args);
   }
 
   warn(...args: unknown[]): void {
-    this.log(LogLevel.WARN, console.warn, args);
+    this.emit(LogLevel.WARN, console.warn, args);
   }
 
   error(...args: unknown[]): void {
-    this.log(LogLevel.ERROR, console.error, args);
+    this.emit(LogLevel.ERROR, console.error, args);
   }
 
   success(...args: unknown[]): void {
@@ -37,16 +44,15 @@ class Logger {
   }
 
   apiCall(endpoint: string, method: string = "GET"): void {
-    this.info(`API Call: ${method} ${endpoint}`);
+    this.info(`api_call`, { endpoint, method });
   }
 
   apiSuccess(endpoint: string, duration?: number): void {
-    const durationStr = duration ? ` (${duration}ms)` : "";
-    this.info(`API Success: ${endpoint}${durationStr}`);
+    this.info(`api_success`, { endpoint, duration });
   }
 
   apiError(endpoint: string, error: unknown): void {
-    this.error(`API Error: ${endpoint}`, error);
+    this.error(`api_error`, { endpoint, error });
   }
 }
 

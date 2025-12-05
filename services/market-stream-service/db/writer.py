@@ -134,6 +134,7 @@ class DatabaseWriter:
                         INSERT INTO market_data_oltp.stock_trades_realtime 
                         (stock_id, ts, price, size, volume)
                         VALUES (%s, %s, %s, %s, %s)
+                        ON CONFLICT (stock_id, ts) DO NOTHING
                         """,
                         (stock_id, ts, price, size, accumulated_volume),
                     )

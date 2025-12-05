@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from services.market_metadata_service import MarketMetadataService
-from typing import List
 import logging
+from shared.python.utils.validation import parse_symbols_csv, ValidationError
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -56,11 +56,7 @@ async def get_accumulated_volumes(
     }
     """
     try:
-        # Parse comma-separated symbols
-        symbol_list = [s.strip().upper() for s in symbols.split(',') if s.strip()]
-        
-        if not symbol_list:
-            raise HTTPException(status_code=400, detail="At least one symbol is required")
+        symbol_list = parse_symbols_csv(symbols)
         
         logger.info(f"[MarketRouter] GET /api/market/volumes - symbols={len(symbol_list)}")
         
@@ -69,6 +65,8 @@ async def get_accumulated_volumes(
         
         logger.info(f"[MarketRouter] Returning volumes for {len(volumes)} symbols")
         return {"success": True, "volumes": volumes}
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except HTTPException:
         raise
     except Exception as e:

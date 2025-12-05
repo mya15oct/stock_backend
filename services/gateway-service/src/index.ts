@@ -16,7 +16,10 @@ import { config } from "./config";
 import { logger } from "./utils";
 import { createApiRoutes } from "./api/routes";
 import {
+  apiLimiter,
   errorHandler,
+  metricsHandler,
+  metricsMiddleware,
   notFoundHandler,
   requestLogger,
 } from "./api/middlewares";
@@ -59,6 +62,7 @@ const createApp = () => {
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  app.use(metricsMiddleware);
 
   // Custom request logging
   if (config.isDevelopment) {
@@ -66,7 +70,10 @@ const createApp = () => {
   }
 
   // API Routes (pure proxies to market-api-service)
-  app.use("/api", createApiRoutes());
+  app.use("/api", apiLimiter, createApiRoutes());
+
+  // Prometheus metrics
+  app.get("/metrics", metricsHandler);
 
   // Health check endpoint
   app.get("/health", (req, res) => {

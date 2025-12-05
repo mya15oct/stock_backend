@@ -8,6 +8,7 @@
 
 import { logger } from "../utils";
 import { wrapRedisCall, wrapWsEmit } from "../utils/errorHandler";
+import { normalizeSymbol, ValidationError } from "../utils/validation";
 import { RedisWebSocketBridge } from "./redis-bridge";
 import { startMockRealtime } from "./mock-realtime";
 
@@ -35,26 +36,46 @@ export class SocketService {
 
       // Handle client subscriptions
       socket.on("subscribe", (payload: { symbol?: string } | string) => {
-        const symbol =
-          typeof payload === "string" ? payload : payload?.symbol ?? undefined;
-        logger.info(
-          `[WebSocket] Client ${socket.id} subscribed to ${symbol ?? "UNKNOWN"}`
-        );
-        if (symbol) {
+        try {
+          const raw =
+            typeof payload === "string" ? payload : payload?.symbol ?? "";
+          const symbol = normalizeSymbol(raw);
+          logger.info(`[WebSocket] Client ${socket.id} subscribed`, {
+            symbol,
+          });
           void wrapWsEmit(() => socket.join(symbol), `join:${symbol}`);
+        } catch (err) {
+          if (err instanceof ValidationError) {
+            logger.warn(`[WebSocket] Rejecting invalid subscribe`, {
+              client: socket.id,
+              error: err.message,
+            });
+            socket.emit("error", { message: err.message });
+          } else {
+            logger.error("[WebSocket] subscribe handler failed", err);
+          }
         }
       });
 
       socket.on("unsubscribe", (payload: { symbol?: string } | string) => {
-        const symbol =
-          typeof payload === "string" ? payload : payload?.symbol ?? undefined;
-        logger.info(
-          `[WebSocket] Client ${socket.id} unsubscribed from ${
-            symbol ?? "UNKNOWN"
-          }`
-        );
-        if (symbol) {
+        try {
+          const raw =
+            typeof payload === "string" ? payload : payload?.symbol ?? "";
+          const symbol = normalizeSymbol(raw);
+          logger.info(`[WebSocket] Client ${socket.id} unsubscribed`, {
+            symbol,
+          });
           void wrapWsEmit(() => socket.leave(symbol), `leave:${symbol}`);
+        } catch (err) {
+          if (err instanceof ValidationError) {
+            logger.warn(`[WebSocket] Rejecting invalid unsubscribe`, {
+              client: socket.id,
+              error: err.message,
+            });
+            socket.emit("error", { message: err.message });
+          } else {
+            logger.error("[WebSocket] unsubscribe handler failed", err);
+          }
         }
       });
 

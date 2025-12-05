@@ -29,6 +29,7 @@ logger = get_logger(__name__)
 class RedisStreamsPublisher:
     def __init__(self):
         self.client: redis.Redis | None = None
+        self.maxlen = settings.REDIS_STREAM_MAXLEN
         self._connect()
 
     def _connect(self) -> None:
@@ -61,7 +62,7 @@ class RedisStreamsPublisher:
     def _xadd(self, stream_key: str, payload: dict) -> None:
         if not self.client:
             raise RuntimeError("Redis client is not connected")
-        self.client.xadd(stream_key, payload, maxlen=10000)
+        self.client.xadd(stream_key, payload, maxlen=self.maxlen, approximate=True)
 
     def publish_trade(self, symbol: str, message: dict) -> None:
         """Publish trade messages to Redis Stream."""

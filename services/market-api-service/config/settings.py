@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     REDIS_URL: Optional[str] = load_env("REDIS_URL")
     CACHE_TTL: int = int(load_env("CACHE_TTL", "1800"))
 
+    # Security
+    ALLOWED_ORIGINS: str = load_env(
+        "ALLOWED_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    )
+
     # API Keys
     ALPHA_VANTAGE_API_KEY: str = load_env("ALPHA_VANTAGE_API_KEY", "demo")
     FINNHUB_API_KEY: Optional[str] = load_env("FINNHUB_API_KEY")
