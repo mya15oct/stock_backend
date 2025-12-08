@@ -119,6 +119,13 @@ class StockDataLoader:
             conn.close()
 
             if result:
+                # Handle 0.0 values correctly by checking for None
+                market_cap_raw = result.get('market_cap')
+                market_cap = self._format_number(market_cap_raw) if market_cap_raw is not None else 185000000000.0
+
+                div_yield_raw = result.get('dividend_yield')
+                div_yield = self._format_number(div_yield_raw) if div_yield_raw is not None else 1.25
+
                 return {
                     "name": result['name'],
                     "ticker": result['ticker'],
@@ -126,13 +133,13 @@ class StockDataLoader:
                     "country": "US",
                     "currency": result['currency'] or "USD",
                     "industry": "Technology",  # Default since not in table
-                    "marketCap": self._format_number(result.get('market_cap', 0)) or 185000000000, # Mock ~185B
+                    "marketCap": market_cap,
                     "ipoDate": "",
                     "logo": "",
                     "sharesOutstanding": 0.0,
                     "website": "",
                     "phone": "",
-                    "dividendYield": self._format_number(result.get('dividend_yield', 0)) or 1.25, # Mock 1.25%
+                    "dividendYield": div_yield,
                     "latestQuarter": datetime.now().strftime("%Y-%m-%d") # Today
                 }
         except Exception as e:
