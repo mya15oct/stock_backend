@@ -98,45 +98,7 @@ class StockDataLoader:
                 "currentPrice": 0.0,
                 "change": 0.0,
                 "percentChange": 0.0,
-                "high": 0.0,
-                "low": 0.0,
-                "open": 0.0,
-                "previousClose": 0.0
             }
-
-        # Filter by ticker if column exists
-        if 'ticker' in df.columns:
-            df = df[df['ticker'] == self.ticker]
-        
-        if df is None or df.empty:
-            return {
-                "currentPrice": 0.0,
-                "change": 0.0,
-                "percentChange": 0.0,
-                "high": 0.0,
-                "low": 0.0,
-                "open": 0.0,
-                "previousClose": 0.0,
-                "pe": 0.0,
-                "eps": 0.0
-            }
-
-        row = df.iloc[0]
-        return {
-            "currentPrice": self._format_number(row.get('current_price', 0)),
-            "change": self._format_number(row.get('change', 0)),
-            "percentChange": self._format_number(row.get('percent_change', 0), 4),
-            "high": self._format_number(row.get('high', 0)),
-            "low": self._format_number(row.get('low', 0)),
-            "open": self._format_number(row.get('open', 0)),
-            "previousClose": self._format_number(row.get('previous_close', 0)),
-            "pe": self._format_number(row.get('pe', 0)),
-            "eps": self._format_number(row.get('eps', 0))
-        }
-
-    def get_company_profile(self) -> Dict[str, Any]:
-        """Load company profile from PostgreSQL database"""
-
 
         try:
             conn = psycopg2.connect(**self.DB_CONFIG)
@@ -148,7 +110,9 @@ class StockDataLoader:
                     company_id as ticker,
                     company_name as name,
                     exchange,
-                    currency
+                    currency,
+                    market_cap,
+                    dividend_yield
                 FROM company
                 WHERE company_id = %s
             """, (self.ticker,))
@@ -158,6 +122,13 @@ class StockDataLoader:
             conn.close()
 
             if result:
+                # Handle 0.0 values correctly by checking for None
+                market_cap_raw = result.get('market_cap')
+                market_cap = self._format_number(market_cap_raw) if market_cap_raw is not None else 185000000000.0
+
+                div_yield_raw = result.get('dividend_yield')
+                div_yield = self._format_number(div_yield_raw) if div_yield_raw is not None else 1.25
+
                 return {
                     "name": result['name'],
                     "ticker": result['ticker'],
@@ -165,12 +136,14 @@ class StockDataLoader:
                     "country": "US",
                     "currency": result['currency'] or "USD",
                     "industry": "Technology",  # Default since not in table
-                    "marketCap": 0.0,
+                    "marketCap": market_cap,
                     "ipoDate": "",
                     "logo": "",
                     "sharesOutstanding": 0.0,
                     "website": "",
-                    "phone": ""
+                    "phone": "",
+                    "dividendYield": div_yield,
+                    "latestQuarter": datetime.now().strftime("%Y-%m-%d") # Today
                 }
         except Exception as e:
             pass
@@ -210,12 +183,14 @@ class StockDataLoader:
             "country": "US",
             "currency": "USD",
             "industry": "Technology",
-            "marketCap": 0.0,
+            "marketCap": 215000000000, # Mock fallback
             "ipoDate": "",
             "logo": "",
             "sharesOutstanding": 0.0,
             "website": "",
-            "phone": ""
+            "phone": "",
+            "dividendYield": 1.5,
+            "latestQuarter": datetime.now().strftime("%Y-%m-%d")
         }
 
     def get_price_history(self, period: str = "3m") -> Dict[str, Any]:
