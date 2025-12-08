@@ -41,6 +41,19 @@ export const createStockRouter = (): Router => {
     })
   );
 
+  // GET /api/stocks/search - Search stocks
+  router.get(
+    "/search",
+    asyncHandler(async (req: Request, res: Response) => {
+      const { q } = req.query;
+      const upstream = await callUpstream(`${baseUrl}/api/search?q=${q}`);
+      if (!upstream) {
+        return res.status(502).json({ success: false, error: "Upstream request failed" });
+      }
+      res.status(upstream.status).json(upstream.data);
+    })
+  );
+
   // GET /api/stocks/:ticker - Get stock by ticker (proxy to /api/profile)
   router.get(
     "/:ticker",
@@ -77,9 +90,8 @@ export const createStockRouter = (): Router => {
     asyncHandler(async (req: Request, res: Response) => {
       const { ticker } = req.params;
       const { period } = req.query;
-      const responseUrl = `${baseUrl}/api/price-history/eod?symbol=${ticker}&period=${
-        period || "3m"
-      }`;
+      const responseUrl = `${baseUrl}/api/price-history/eod?symbol=${ticker}&period=${period || "3m"
+        }`;
       const upstream = await callUpstream(responseUrl);
       if (!upstream) {
         return res.status(502).json({ success: false, error: "Upstream request failed" });
