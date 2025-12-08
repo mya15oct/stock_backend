@@ -33,11 +33,15 @@ class StockDataLoader:
     """Load real stock data from CSV files"""
 
     def __init__(self, ticker: str = "APP", data_dir: str = "./data"):
-        # Validate ticker: only A-Z, 0-9, max with 5 chars
-        if not ticker or not isinstance(ticker, str) or len(ticker) > 5:
-            raise ValueError("Invalid ticker format")
-        if not ticker.isalnum():
-            raise ValueError("Ticker must contain only alphanumeric characters")
+        # Validate ticker: allow A-Z, 0-9, -, ^, . (e.g., ^GSPC, BRK.B, AAPL)
+        # Relaxed validation to support indices and special tickers
+        if not ticker or not isinstance(ticker, str) or len(ticker) > 10:
+            raise ValueError(f"Invalid ticker format: {ticker}")
+        
+        # Check for valid characters (alphanumeric + special chars)
+        import re
+        if not re.match(r'^[A-Z0-9\-\^\.]+$', ticker):
+            raise ValueError(f"Ticker contains invalid characters: {ticker}")
         self.ticker = ticker
         self.data_dir = data_dir
 
