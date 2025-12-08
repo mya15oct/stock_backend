@@ -29,6 +29,31 @@ export const createStockRouter = (): Router => {
     return { status: response.status, data };
   };
 
+  /**
+   * @swagger
+   * /api/stocks:
+   *   get:
+   *     summary: Retrieve a list of stocks
+   *     description: Retrieve a list of stocks from the market API.
+   *     responses:
+   *       200:
+   *         description: A list of stocks.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 type: object
+   *                 properties:
+   *                   symbol:
+   *                     type: string
+   *                     description: The stock ticker symbol.
+   *                     example: AAPL
+   *                   name:
+   *                     type: string
+   *                     description: The company name.
+   *                     example: Apple Inc.
+   */
   // GET /api/stocks - Get all stocks (proxy to /api/companies)
   router.get(
     "/",
@@ -41,6 +66,23 @@ export const createStockRouter = (): Router => {
     })
   );
 
+  /**
+   * @swagger
+   * /api/stocks/search:
+   *   get:
+   *     summary: Search for stocks
+   *     tags: [Stocks]
+   *     parameters:
+   *       - in: query
+   *         name: q
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Search query
+   *     responses:
+   *       200:
+   *         description: Search results
+   */
   // GET /api/stocks/search - Search stocks
   router.get(
     "/search",
@@ -57,6 +99,22 @@ export const createStockRouter = (): Router => {
     })
   );
 
+  /**
+   * @swagger
+   * /api/stocks/{ticker}:
+   *   get:
+   *     summary: Get stock profile
+   *     tags: [Stocks]
+   *     parameters:
+   *       - in: path
+   *         name: ticker
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Stock profile
+   */
   // GET /api/stocks/:ticker - Get stock by ticker (proxy to /api/profile)
   router.get(
     "/:ticker",
@@ -71,6 +129,22 @@ export const createStockRouter = (): Router => {
     })
   );
 
+  /**
+   * @swagger
+   * /api/stocks/{ticker}/quote:
+   *   get:
+   *     summary: Get real-time quote
+   *     tags: [Stocks]
+   *     parameters:
+   *       - in: path
+   *         name: ticker
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Real-time quote
+   */
   // GET /api/stocks/:ticker/quote - Get real-time quote
   router.get(
     "/:ticker/quote",
@@ -85,6 +159,27 @@ export const createStockRouter = (): Router => {
     })
   );
 
+  /**
+   * @swagger
+   * /api/stocks/{ticker}/price-history:
+   *   get:
+   *     summary: Get price history
+   *     tags: [Stocks]
+   *     parameters:
+   *       - in: path
+   *         name: ticker
+   *         required: true
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: period
+   *         schema:
+   *           type: string
+   *           default: 3m
+   *     responses:
+   *       200:
+   *         description: Price history
+   */
   // GET /api/stocks/:ticker/price-history - Get price history
   router.get(
     "/:ticker/price-history",
@@ -103,6 +198,27 @@ export const createStockRouter = (): Router => {
     })
   );
 
+  /**
+   * @swagger
+   * /api/stocks/{ticker}/news:
+   *   get:
+   *     summary: Get company news
+   *     tags: [Stocks]
+   *     parameters:
+   *       - in: path
+   *         name: ticker
+   *         required: true
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           default: 16
+   *     responses:
+   *       200:
+   *         description: Company news
+   */
   // GET /api/stocks/:ticker/news - Get company news
   router.get(
     "/:ticker/news",
@@ -121,6 +237,34 @@ export const createStockRouter = (): Router => {
     })
   );
 
+  /**
+   * @swagger
+   * /api/stocks/{ticker}/financials:
+   *   get:
+   *     summary: Get financials for a specific stock
+   *     tags: [Stocks]
+   *     parameters:
+   *       - in: path
+   *         name: ticker
+   *         required: true
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: type
+   *         schema:
+   *           type: string
+   *           enum: [IS, BS, CF]
+   *           default: IS
+   *       - in: query
+   *         name: period
+   *         schema:
+   *           type: string
+   *           enum: [annual, quarterly]
+   *           default: quarterly
+   *     responses:
+   *       200:
+   *         description: Financial statements
+   */
   // GET /api/stocks/:ticker/financials - Get financials (proxy to /api/financials)
   router.get(
     "/:ticker/financials",
@@ -138,6 +282,22 @@ export const createStockRouter = (): Router => {
     })
   );
 
+  /**
+   * @swagger
+   * /api/stocks/{ticker}/earnings:
+   *   get:
+   *     summary: Get earnings data
+   *     tags: [Stocks]
+   *     parameters:
+   *       - in: path
+   *         name: ticker
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Earnings data
+   */
   // GET /api/stocks/:ticker/earnings - Get earnings
   router.get(
     "/:ticker/earnings",
@@ -152,6 +312,16 @@ export const createStockRouter = (): Router => {
     })
   );
 
+  /**
+   * @swagger
+   * /api/stocks/refresh:
+   *   post:
+   *     summary: Trigger data refresh
+   *     tags: [Stocks]
+   *     responses:
+   *       200:
+   *         description: Refresh triggered
+   */
   // POST /api/stocks/refresh - Refresh data
   router.post(
     "/refresh",

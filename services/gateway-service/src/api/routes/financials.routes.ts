@@ -22,7 +22,7 @@ export const createFinancialsRouter = (): Router => {
    */
   /**
    * @swagger
-   * /financials:
+   * /api/financials:
    *   get:
    *     summary: Get financial data
    *     tags: [Financials]
