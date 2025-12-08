@@ -46,8 +46,11 @@ export const createStockRouter = (): Router => {
     "/search",
     asyncHandler(async (req: Request, res: Response) => {
       const { q } = req.query;
-      const upstream = await callUpstream(`${baseUrl}/api/search?q=${q}`);
+      const url = `${baseUrl}/api/search?q=${q}`;
+      logger.info(`Proxying search request to: ${url}`);
+      const upstream = await callUpstream(url);
       if (!upstream) {
+        logger.error(`Upstream search failed for URL: ${url}`);
         return res.status(502).json({ success: false, error: "Upstream request failed" });
       }
       res.status(upstream.status).json(upstream.data);
