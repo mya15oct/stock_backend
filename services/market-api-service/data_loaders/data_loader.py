@@ -98,6 +98,7 @@ class StockDataLoader:
                 "currentPrice": 0.0,
                 "change": 0.0,
                 "percentChange": 0.0,
+            }
 
         try:
             conn = psycopg2.connect(**self.DB_CONFIG)
