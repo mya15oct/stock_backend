@@ -110,7 +110,9 @@ class StockDataLoader:
                     company_id as ticker,
                     company_name as name,
                     exchange,
-                    currency
+                    currency,
+                    market_cap,
+                    dividend_yield
                 FROM company
                 WHERE company_id = %s
             """, (self.ticker,))
