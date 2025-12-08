@@ -31,28 +31,30 @@ import { SocketService } from "./websocket/socket.service";
 const createApp = () => {
   const app = express();
   const httpServer = createServer(app);
+
+  // LOGIC FIX CORS: 
+  // Nếu config có chứa "*", ta set origin = true để thư viện tự động
+  // phản hồi đúng tên miền của người gửi (Reflect Origin).
+  // Điều này giúp vượt qua lỗi CORS khi dùng credentials: true.
+  const corsOptions = {
+    origin: config.corsOrigins.includes("*") ? true : config.corsOrigins,
+    credentials: true,
+  };
+
   const io = new Server(httpServer, {
-    cors: {
-      origin: config.corsOrigins,
-      credentials: true,
-    },
+    cors: corsOptions, // Áp dụng cho Socket.IO
     // Tối ưu WebSocket connection để tránh ngắt kết nối
-    pingTimeout: 60000, // 60 seconds - tăng timeout để tránh disconnect
-    pingInterval: 25000, // 25 seconds - gửi ping mỗi 25s để keep-alive
-    transports: ["websocket", "polling"], // Cho phép cả websocket và polling fallback
-    allowEIO3: true, // Backward compatibility
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    transports: ["websocket", "polling"],
+    allowEIO3: true,
   });
 
   // Initialize WebSocket service (owns RedisWebSocketBridge lifecycle)
   const socketService = new SocketService(io);
 
-  // Middleware
-  app.use(
-    cors({
-      origin: config.corsOrigins,
-      credentials: true,
-    })
-  );
+  // Middleware áp dụng cho Express API
+  app.use(cors(corsOptions));
 
   app.use(
     helmet({
@@ -102,7 +104,13 @@ const startServer = () => {
   httpServer.listen(PORT, () => {
     logger.success(`🚀 Gateway service running on port ${PORT}`);
     logger.info(`📝 Environment: ${config.nodeEnv}`);
-    logger.info(`🔗 CORS Origins: ${config.corsOrigins.join(", ")}`);
+
+    // Log ra để kiểm tra xem đang nhận cấu hình gì
+    const originLog = config.corsOrigins.includes("*")
+      ? "Allow ALL (Reflect Origin)"
+      : config.corsOrigins.join(", ");
+
+    logger.info(`🔗 CORS Origins: ${originLog}`);
     logger.info(`🐍 Market API: ${config.marketApiUrl}`);
     logger.info(`📡 WebSocket: Enabled`);
   });
@@ -112,4 +120,3 @@ const startServer = () => {
 startServer();
 
 export { createApp };
-
