@@ -83,13 +83,13 @@ export function rateLimit(options: RateLimitOptions) {
 // Predefined rate limiters
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // 100 requests per 15 minutes
+    max: 1000, // 1000 requests per 15 minutes
     message: "Too many API requests from this IP, please try again later.",
 });
 
 export const strictLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
-    max: 10, // 10 requests per minute
+    max: 100, // 100 requests per minute
     message: "Too many requests, please slow down.",
 });
 
