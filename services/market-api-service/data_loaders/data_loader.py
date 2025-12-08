@@ -193,6 +193,74 @@ class StockDataLoader:
             "latestQuarter": datetime.now().strftime("%Y-%m-%d")
         }
 
+    # Load company profile data
+    def get_company_profile(self):
+        try:
+            if not self._file_exists('company_profile.csv'):
+                return self._get_fallback_profile()
+
+            df = self._safe_read_csv('company_profile.csv')
+            if df is None or df.empty:
+                return self._get_fallback_profile()
+            
+            # Since company_profile usually contains one row per file/ticker in this context
+            # Or if it's a shared file, filter by ticker
+            record = None
+            if 'ticker' in df.columns:
+               record = df[df['ticker'] == self.ticker]
+               if not record.empty:
+                   record = record.iloc[0]
+               else:
+                   return self._get_fallback_profile()
+            else:
+                # If no ticker column, assume single-record file
+                record = df.iloc[0]
+
+            def safe_get(key, default=""):
+                 val = record.get(key, default)
+                 return val if pd.notna(val) else default
+
+            return {
+                "name": safe_get('name', f"{self.ticker} Inc."),
+                "ticker": self.ticker,
+                "exchange": safe_get('exchange', 'NASDAQ'),
+                "industry": safe_get('industry', 'Technology'),
+                "marketCap": float(safe_get('market_cap', 0)), 
+                "ipoDate": safe_get('ipo', ''),
+                "logo": safe_get('logo', ''),
+                "phone": safe_get('phone', ''),
+                "website": safe_get('weburl', ''),
+                "description": safe_get('description', ''),
+                "sector": safe_get('sector', ''), 
+                "currency": safe_get('currency', 'USD'),
+                "country": safe_get('country', 'US'),
+                "sharesOutstanding": 0, # Not in CSV
+                "dividendYield": float(safe_get('dividend_yield', 0)),
+                "latestQuarter": safe_get('latest_quarter', '')
+            }
+
+        except Exception as e:
+            print(f"Error loading profile: {e}")
+            return self._get_fallback_profile()
+
+    def _get_fallback_profile(self):
+        return {
+            "name": f"{self.ticker} Corporation",
+            "ticker": self.ticker,
+            "exchange": "NASDAQ",
+            "industry": "Technology",
+            "sector": "Technology", 
+            "marketCap": 150000000000,
+            "ipoDate": "1980-12-12",
+            "logo": "https://logo.clearbit.com/apple.com",
+            "phone": "+1 408-996-1010",
+            "website": "https://www.apple.com",
+            "description": "Mock description because data was missing.",
+            "currency": "USD",
+            "country": "US",
+            "sharesOutstanding": 16000000000
+        }
+
     def get_price_history(self, period: str = "3m") -> Dict[str, Any]:
         """Load price history and format for Snowball price-history response"""
         df = self._safe_read_csv("stock_candles.csv")

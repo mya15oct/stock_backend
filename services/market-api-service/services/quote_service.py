@@ -68,7 +68,6 @@ class QuoteService:
                 if result['pe'] == 0:
                     result['pe'] = mock_data.get('pe', 0)
                 if result['eps'] == 0:
-                if result['eps'] == 0:
                     result['eps'] = mock_data.get('eps', 0)
                 
                 # If DB has zero change but mock has value, use mock (common in dev)
