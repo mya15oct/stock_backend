@@ -65,9 +65,9 @@ class QuoteService:
             # Enrich with mock data for missing fields (PE, EPS) or zero values
             try:
                 mock_data = self._get_fallback_quote(ticker)
-                # Enrich with mock data for missing fields (PE, EPS) or zero values
                 if result['pe'] == 0:
                     result['pe'] = mock_data.get('pe', 0)
+                if result['eps'] == 0:
                 if result['eps'] == 0:
                     result['eps'] = mock_data.get('eps', 0)
                 
