@@ -12,6 +12,8 @@ import cors from "cors";
 import helmet from "helmet";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./swagger";
 import { config } from "./config";
 import { logger } from "./utils";
 import { createApiRoutes } from "./api/routes";
@@ -73,6 +75,9 @@ const createApp = () => {
 
   // API Routes (pure proxies to market-api-service)
   app.use("/api", apiLimiter, createApiRoutes());
+
+  // Swagger Documentation
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
   // Prometheus metrics
   app.get("/metrics", metricsHandler);
