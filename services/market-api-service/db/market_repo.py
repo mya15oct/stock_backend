@@ -51,7 +51,7 @@ class MarketMetadataRepository(BaseRepository):
                 COALESCE(t.volume, 0) AS volume
             FROM market_data_oltp.stocks AS s
             LEFT JOIN LATERAL (
-                SELECT volume
+                SELECT size
                 FROM market_data_oltp.stock_trades_realtime
                 WHERE stock_id = s.stock_id
                 ORDER BY ts DESC, trade_id DESC

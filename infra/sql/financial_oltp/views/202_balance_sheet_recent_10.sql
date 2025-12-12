@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW vw_balance_sheet_recent AS
+CREATE OR REPLACE VIEW financial_oltp.vw_balance_sheet_recent AS
 SELECT
     fs.statement_id,
     c.company_id,
