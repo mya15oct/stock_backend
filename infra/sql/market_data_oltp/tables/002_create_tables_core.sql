@@ -1,3 +1,5 @@
+SET search_path TO market_data_oltp;
+
 CREATE TABLE stocks (
     stock_id SERIAL PRIMARY KEY,
     company_id VARCHAR(20) REFERENCES financial_oltp.company(company_id),
