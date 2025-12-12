@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     DB_NAME: str = load_env("DB_NAME", "Web_quan_li_danh_muc")
     DB_USER: str = load_env("DB_USER", "postgres")
     DB_PASSWORD: str
+    DB_SSL_MODE: str = load_env("DB_SSL_MODE", "require")
+    DB_SSL_MODE: str = load_env("DB_SSL_MODE", "disable")
 
     # Redis
     REDIS_HOST: str = load_env("REDIS_HOST", "redis")
@@ -31,9 +33,28 @@ class Settings(BaseSettings):
 
     # API Keys
     ALPHA_VANTAGE_API_KEY: str = load_env("ALPHA_VANTAGE_API_KEY", "demo")
-    FINNHUB_API_KEY: Optional[str] = load_env("FINNHUB_API_KEY")
+    FINNHUB_API_KEY: str = load_env("FINNHUB_API_KEY", "")
     
-    # Alpaca API (for EOD data fetching)
+    # Authentication (Temporarily disabled)
+    # JWT_SECRET: str = load_env("JWT_SECRET", "super-secret-key-change-me-in-prod")
+    # JWT_ALGORITHM: str = load_env("JWT_ALGORITHM", "HS256")
+    # ACCESS_TOKEN_EXPIRE_MINUTES: int = int(load_env("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")) # 1 day
+
+    # OAuth (Temporarily disabled)
+    # GOOGLE_CLIENT_ID: str = load_env("GOOGLE_CLIENT_ID", "")
+    # GOOGLE_CLIENT_SECRET: str = load_env("GOOGLE_CLIENT_SECRET", "")
+    # FACEBOOK_CLIENT_ID: str = load_env("FACEBOOK_CLIENT_ID", "")
+    # FACEBOOK_CLIENT_ID: str = load_env("FACEBOOK_CLIENT_ID", "")
+    # FACEBOOK_CLIENT_SECRET: str = load_env("FACEBOOK_CLIENT_SECRET", "")
+    
+    # Mail (Temporarily disabled)
+    # MAIL_USERNAME: str = load_env("MAIL_USERNAME", "")
+    # MAIL_PASSWORD: str = load_env("MAIL_PASSWORD", "")
+    # MAIL_FROM: str = load_env("MAIL_FROM", "")
+    # MAIL_PORT: int = int(load_env("MAIL_PORT", "587"))
+    # MAIL_SERVER: str = load_env("MAIL_SERVER", "")
+    
+    # Alpaca API (for EOD data fetching - Kept active as it might be used by quote service)
     ALPACA_API_KEY: Optional[str] = load_env("ALPACA_API_KEY")
     ALPACA_SECRET_KEY: Optional[str] = load_env("ALPACA_SECRET_KEY")
     ALPACA_BASE_URL: str = load_env("ALPACA_BASE_URL", "https://data.alpaca.markets")
