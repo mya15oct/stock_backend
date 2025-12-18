@@ -152,6 +152,7 @@ services:
     volumes:
       - ./services/market-api-service:/app
       - ./shared:/app/shared
+      - ./.env:/app/.env
     networks:
       - stock_network
     depends_on:
