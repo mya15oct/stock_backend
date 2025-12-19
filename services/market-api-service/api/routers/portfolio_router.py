@@ -191,3 +191,28 @@ async def delete_portfolio(
     except Exception as e:
         logger.error(f"Error deleting portfolio: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+class HoldingAdjustment(BaseModel):
+    target_shares: float
+    target_avg_price: float
+
+@router.post("/api/portfolio/{portfolio_id}/holdings/{ticker}/adjust", tags=["Portfolio"])
+async def adjust_holding(
+    portfolio_id: str,
+    ticker: str,
+    adjustment: HoldingAdjustment = Body(...)
+):
+    try:
+        service = PortfolioService()
+        tx_id = service.adjust_holding(
+            portfolio_id=portfolio_id, 
+            ticker=ticker.upper(), 
+            target_shares=adjustment.target_shares, 
+            target_avg_price=adjustment.target_avg_price
+        )
+        return {"success": True, "data": {"transaction_id": tx_id}}
+    except ValueError as ve:
+         raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        logger.error(f"Error adjusting holding: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

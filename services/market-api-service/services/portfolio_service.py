@@ -28,11 +28,22 @@ class PortfolioService:
         return self.repo.create_portfolio(user_id, name, currency, goal_type, target_amount, note)
 
     def delete_portfolio(self, portfolio_id: str, user_id: str) -> bool:
+        portfolio = self.repo.get_portfolio(portfolio_id)
+        if portfolio and portfolio.get('is_read_only'):
+             raise ValueError("Cannot delete a read-only portfolio.")
         return self.repo.delete_portfolio(portfolio_id, user_id)
 
     def add_transaction(self, portfolio_id: str, ticker: str, 
                        transaction_type: str, quantity: float, price: float,
                        fee: float = 0, note: str = None) -> str:
+        
+        # 0. Check Read Only
+        portfolio = self.repo.get_portfolio(portfolio_id)
+        if not portfolio:
+            raise ValueError("Portfolio not found")
+        if portfolio.get('is_read_only'):
+             raise ValueError("Annot modify a read-only portfolio. Please create a new portfolio.")
+
         
         # 1. Validate Numeric Inputs
         if quantity <= 0:
@@ -66,9 +77,61 @@ class PortfolioService:
             note=note
         )
 
+    def adjust_holding(self, portfolio_id: str, ticker: str, target_shares: float, target_avg_price: float) -> str:
+        """
+        Adjust a holding to match the target shares and average price by creating an ADJUSTMENT transaction.
+        """
+        # 0. Check Read Only
+        portfolio = self.repo.get_portfolio(portfolio_id)
+        if not portfolio:
+            raise ValueError("Portfolio not found")
+        if portfolio.get('is_read_only'):
+             raise ValueError("Cannot modify a read-only portfolio.")
+
+        # 1. Get Current State
+        holdings = self.repo.get_holdings(portfolio_id, include_sold=True) # Include sold to catch 0-share states
+        current_holding = next((h for h in holdings if h['stock_ticker'] == ticker), None)
+        
+        current_shares = float(current_holding['total_shares']) if current_holding else 0.0
+        current_avg_cost = float(current_holding['avg_cost_basis']) if current_holding else 0.0
+        current_total_cost = current_shares * current_avg_cost
+        
+        # 2. Calculate Deltas
+        # Delta Shares
+        delta_shares = target_shares - current_shares
+        
+        # Delta Cost (Target Total Value - Current Total Value)
+        target_total_cost = target_shares * target_avg_price
+        delta_cost = target_total_cost - current_total_cost
+        
+        # 3. Create Adjustment Transaction
+        if delta_shares == 0 and abs(delta_cost) < 0.01:
+            return "No adjustment needed"
+
+        # Note: Price for adjustment is metadata only, effectively 'Implied Price per Delta Share' or 0 if pure value adj
+        price_metadata = (delta_cost / delta_shares) if abs(delta_shares) > 0.0001 else 0.0
+        
+        return self.repo.add_transaction(
+            portfolio_id=portfolio_id,
+            ticker=ticker,
+            transaction_type='ADJUSTMENT',
+            quantity=delta_shares, # Can be negative
+            price=abs(price_metadata), # Metadata only
+            amount=delta_cost,     # The real driver of cost change
+            note=f"Manual Adjustment to {target_shares} shares @ {target_avg_price}"
+        )
+
     def update_transaction(self, transaction_id: str, portfolio_id: str, ticker: str,
                           transaction_type: str, quantity: float, price: float,
                           fee: float = 0, date: str = None, note: str = None) -> bool:
+        
+        # 0. Check Read Only
+        portfolio = self.repo.get_portfolio(portfolio_id)
+        if not portfolio:
+             raise ValueError("Portfolio not found")
+        if portfolio.get('is_read_only'):
+             raise ValueError("Cannot modify a read-only portfolio.")
+
         
         # 1. Validate Numeric Inputs
         if quantity <= 0:
@@ -273,7 +336,13 @@ class PortfolioService:
         return transactions
 
     def delete_transaction(self, transaction_id: str, portfolio_id: str) -> bool:
+        portfolio = self.repo.get_portfolio(portfolio_id)
+        if portfolio and portfolio.get('is_read_only'):
+             raise ValueError("Cannot modify a read-only portfolio.")
         return self.repo.delete_transaction(transaction_id, portfolio_id)
 
     def delete_holding(self, portfolio_id: str, ticker: str) -> bool:
+        portfolio = self.repo.get_portfolio(portfolio_id)
+        if portfolio and portfolio.get('is_read_only'):
+             raise ValueError("Cannot modify a read-only portfolio.")
         return self.repo.delete_holding(portfolio_id, ticker)

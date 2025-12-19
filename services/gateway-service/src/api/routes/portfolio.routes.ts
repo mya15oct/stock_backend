@@ -98,5 +98,11 @@ export const createPortfolioRouter = (): Router => {
     await proxyRequest(req, res, "PUT", `/${portfolioId}/transactions/${transactionId}`, req.body);
   }));
 
+  // POST /:portfolioId/holdings/:ticker/adjust
+  router.post("/:portfolioId/holdings/:ticker/adjust", asyncHandler(async (req, res) => {
+    const { portfolioId, ticker } = req.params;
+    await proxyRequest(req, res, "POST", `/${portfolioId}/holdings/${ticker}/adjust`, req.body);
+  }));
+
   return router;
 };

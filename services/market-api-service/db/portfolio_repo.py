@@ -11,12 +11,49 @@ class PortfolioRepo(BaseRepository):
     # --- Portfolios ---
     def get_user_portfolios(self, user_id: str) -> List[Dict]:
         query = """
-            SELECT portfolio_id, name, currency, created_at
+            SELECT portfolio_id, name, currency, created_at, is_read_only
             FROM portfolio_oltp.portfolios
             WHERE user_id = %s
             ORDER BY created_at DESC
         """
         return self.fetch_all(query, (user_id,))
+
+    def get_portfolio(self, portfolio_id: str) -> Optional[Dict]:
+        query = """
+            SELECT portfolio_id, name, is_read_only, user_id
+            FROM portfolio_oltp.portfolios
+            WHERE portfolio_id = %s
+        """
+        return self.fetch_one(query, (portfolio_id,))
+
+    def migrate_read_only_column(self):
+        """
+        Idempotent migration to add is_read_only column and rename Default Portfolio
+        """
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cur:
+                # 1. Add column if not exists
+                cur.execute("SELECT column_name FROM information_schema.columns WHERE table_schema = 'portfolio_oltp' AND table_name = 'portfolios' AND column_name = 'is_read_only'")
+                if not cur.fetchone():
+                    logger.info("Adding is_read_only column...")
+                    cur.execute("ALTER TABLE portfolio_oltp.portfolios ADD COLUMN is_read_only BOOLEAN DEFAULT FALSE")
+
+                # 2. Rename and set read-only
+                logger.info("Running portfolio data migration...")
+                cur.execute("UPDATE portfolio_oltp.portfolios SET name = 'Demo Portfolio', is_read_only = TRUE WHERE name = 'Default Portfolio'")
+                
+                # Ensure it is set even if already renamed
+                cur.execute("UPDATE portfolio_oltp.portfolios SET is_read_only = TRUE WHERE name = 'Demo Portfolio'")
+                
+            conn.commit()
+            logger.info("Portfolio migration completed.")
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Migration failed: {e}")
+            # Don't raise, allowing app to start even if migration fails (though it shouldn't)
+        finally:
+            conn.close()
 
     def create_portfolio(self, user_id: str, name: str, currency: str = 'USD', 
                         goal_type: str = 'VALUE', target_amount: float = None, note: str = None) -> str:
@@ -32,16 +69,22 @@ class PortfolioRepo(BaseRepository):
     # --- Transactions ---
     def add_transaction(self, portfolio_id: str, ticker: str, 
                        transaction_type: str, quantity: float, price: float,
+                       amount: float = None, # New optional field
                        fee: float = 0, tax: float = 0, 
                        transaction_date: datetime = None, note: str = None) -> str:
         transaction_id = str(uuid.uuid4())
         if transaction_date is None:
             transaction_date = datetime.now()
+
+        # Calculate amount if not provided and not Adjustment
+        # For Adjustment, amount IS the cost delta, passed explicitly or calculated by service
+        if amount is None:
+            amount = quantity * price
             
         insert_query = """
             INSERT INTO portfolio_oltp.portfolio_transactions 
-            (transaction_id, portfolio_id, stock_ticker, transaction_type, quantity, price, fee, tax, transaction_date, note)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (transaction_id, portfolio_id, stock_ticker, transaction_type, quantity, price, amount, fee, tax, transaction_date, note)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING transaction_id
         """
         
@@ -52,7 +95,7 @@ class PortfolioRepo(BaseRepository):
                 # 1. Insert Transaction
                 cur.execute(insert_query, (
                     transaction_id, portfolio_id, ticker, transaction_type, 
-                    quantity, price, fee, tax, transaction_date, note
+                    quantity, price, amount, fee, tax, transaction_date, note
                 ))
                 
                 # 2. Update Holdings Cache (Pass cursor to reuse transaction)
@@ -103,7 +146,7 @@ class PortfolioRepo(BaseRepository):
         """
         # Fetch all transactions for this stock in chronological order
         query = """
-            SELECT transaction_type, quantity, price, fee, transaction_date
+            SELECT transaction_type, quantity, price, amount, fee, transaction_date
             FROM portfolio_oltp.portfolio_transactions
             WHERE portfolio_id = %s AND stock_ticker = %s
             ORDER BY transaction_date ASC
@@ -125,21 +168,31 @@ class PortfolioRepo(BaseRepository):
         for tx in txs:
             t_type = tx['transaction_type']
             qty = float(tx['quantity'])
-            price = float(tx['price'])
+            # Use amount if available, otherwise calc from price (backward compat logic, though migration fills it)
+            amount = float(tx['amount']) if tx.get('amount') is not None else (qty * float(tx['price']))
             
             if t_type == 'BUY':
                 if total_shares == 0:
                     first_buy_date = tx['transaction_date']
-                total_cost += (qty * price) # Standard calculation: add to total cost
+                total_cost += amount
                 total_shares += qty
+            elif t_type == 'ADJUSTMENT':
+                # Adjustment directly modifies shares and cost
+                # amount can be negative (reducing cost) or positive (adding cost)
+                # qty can be negative (reducing shares) or positive (adding shares)
+                total_cost += amount
+                total_shares += qty
+                # If shares drop to 0 after adjustment, logic below handles reset
             elif t_type == 'SELL':
                 if total_shares > 0:
-                    # Reduce cost proportionally
+                    # Reduce cost proportionally (Average Cost Method)
+                    # Note: SELL 'amount' (proceeds) is NOT used for cost basis calculation.
+                    # We remove the portion of Cost Cost corresponding to the shares sold.
                     avg_cost = total_cost / total_shares
                     total_cost -= (qty * avg_cost)
                     total_shares -= qty
             
-            # Reset if shares go to 0 (or negative, though shouldn't happen)
+            # Reset if shares go to 0
             if total_shares <= 0.000001:
                 total_shares = 0
                 total_cost = 0

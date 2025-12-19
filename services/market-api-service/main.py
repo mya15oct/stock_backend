@@ -1,7 +1,7 @@
 # SERVICE BOUNDARY: This service must NOT read Kafka or Redis Streams.
 # It can access Postgres and Redis Cache only.
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request as FastAPIRequest
 from fastapi.middleware.cors import CORSMiddleware
 from api.routers import (
     quote_router,
@@ -20,6 +20,7 @@ from api.routers import (
     portfolio_router,
     auth_router,
 )
+from db.portfolio_repo import PortfolioRepo
 from config.settings import settings
 from shared.python.utils.logging_config import get_logger
 from shared.python.utils.env import validate_env
@@ -48,6 +49,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Starting up...")
+    try:
+        # Run DB Migrations
+        # PortfolioRepo().migrate_read_only_column()
+        pass
+    except Exception as e:
+        logger.error(f"Startup migration failed: {e}")
+
+@app.middleware("http")
+async def log_requests(request: FastAPIRequest, call_next):
+    logger.info(f"Incoming Request: {request.method} {request.url}")
+    auth = request.headers.get("Authorization")
+    if auth:
+        logger.info(f"Authorization Header: {auth[:20]}...") # Log start of token
+    else:
+        logger.info("Authorization Header: MISSING")
+    
+    response = await call_next(request)
+    return response
 
 # Include Routers (removed financials_legacy_router)
 app.include_router(quote_router.router)
