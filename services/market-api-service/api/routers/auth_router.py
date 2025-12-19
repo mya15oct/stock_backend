@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any
 
 from services.auth_service import AuthService
 from db.auth_repo import AuthRepository
+from config.settings import settings
 
 router = APIRouter()
 auth_service = AuthService()
@@ -32,6 +33,27 @@ class UserUpdate(BaseModel):
 # --- Endpoints ---
 
 from fastapi import BackgroundTasks
+
+
+# --- Dependencies ---
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+from shared.python.security.jwt_utils import decode_access_token 
+from fastapi import status
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = decode_access_token(token, settings.JWT_SECRET, settings.JWT_ALGORITHM)
+        user_id = payload.get("sub")
+        if user_id is None:
+             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+        return user_id
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 @router.post("/api/auth/register", tags=["Authentication"])
 async def register(user: UserRegister, background_tasks: BackgroundTasks):
@@ -65,30 +87,27 @@ async def verify_otp(data: VerifyOTPRequest):
     """Verify OTP and return Access Token (Auto Login)."""
     return auth_service.verify_user_otp(data.email, data.otp)
 
-# @router.get("/api/auth/verify-email", tags=["Authentication"])
-# async def verify_email(token: str):
-#    ... (Deprecate or keep as legacy?) 
-#    Actually, let's keep it but maybe it's unused in new UI. 
-#    For cleanliness, I will comment it out or leave it if user wants fallback.
-#    Since user specifically asked to CHANGE flow, I should probably prioritize the new one.
-#    But to avoid breaking things too fast, I'll just add the new one.
-
 @router.put("/api/auth/profile", tags=["Authentication"])
 async def update_profile(
     updates: UserUpdate,
-    current_user_id: str = "TODO: Extract from JWT Middleware" 
+    current_user_id: str = Depends(get_current_user)
 ):
-    """Update user profile."""
-    # NOTE: Since Gateway handles auth, we expect user_id in headers or similar.
-    # BUT, since we are implementing JWT in backend too (for generating it), 
-    # we should also be able to validate it here if Gateway passes it through.
-    # For MVP, we will assume user_id is passed in Header 'X-User-Id' by Gateway
-    # OR we can implement a dependency to parse JWT again here. 
-    # Given the plan says Gateway does Validation, Gateway should send 'X-User-Id'.
+    """Update user profile (Name, Avatar, Password)."""
+    # Convert Pydantic model to dict, excluding None values
+    update_data = updates.dict(exclude_unset=True)
     
-    # However, to test locally without Gateway first, let's allow a header override
-    pass
-    
-    # We will implement this properly after checking how Gateway forwards user info.
-    # For now, let's create the endpoint structure.
-    return {"message": "Profile update endpoint - connects in next step"}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No updates provided")
+        
+    updated_user = auth_service.update_profile(current_user_id, update_data)
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    return {
+        "message": "Profile updated successfully",
+        "user": {
+            "full_name": updated_user.get("full_name"),
+            "avatar_url": updated_user.get("avatar_url"),
+            "email": updated_user.get("email")
+        }
+    }

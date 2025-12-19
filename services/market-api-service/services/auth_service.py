@@ -185,12 +185,11 @@ class AuthService:
             self.repo.delete_tokens(user['user_id'])
             
         # 5. Generate Auth Token (Login)
-        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token_expires = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": str(user["user_id"]), "email": user["email"]},
             secret_key=settings.JWT_SECRET,
-            algorithm=settings.JWT_ALGORITHM,
-            expires_delta=access_token_expires
+            algorithm=settings.JWT_ALGORITHM
         )
         
         return {
@@ -216,12 +215,11 @@ class AuthService:
         if not user.get("is_verified"):
             raise HTTPException(status_code=403, detail="Email not verified. Please check your inbox.")
             
-        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token_expires = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": str(user["user_id"]), "email": user["email"]},
             secret_key=settings.JWT_SECRET,
-            algorithm=settings.JWT_ALGORITHM,
-            expires_delta=access_token_expires
+            algorithm=settings.JWT_ALGORITHM
         )
         
         return {
@@ -300,12 +298,11 @@ class AuthService:
         self.repo.create_oauth_account(user["user_id"], provider, provider_user_id, token)
 
         # Generate Token
-        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token_expires = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": str(user["user_id"]), "email": user["email"]},
             secret_key=settings.JWT_SECRET,
-            algorithm=settings.JWT_ALGORITHM,
-            expires_delta=access_token_expires
+            algorithm=settings.JWT_ALGORITHM
         )
 
         return {

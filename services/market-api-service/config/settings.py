@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # Authentication
     JWT_SECRET: str = load_env("JWT_SECRET", "super-secret-key-change-me-in-prod")
     JWT_ALGORITHM: str = load_env("JWT_ALGORITHM", "HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(load_env("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")) # 1 day
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440 # Renamed to avoid .env collision
 
     # OAuth
     GOOGLE_CLIENT_ID: str = load_env("GOOGLE_CLIENT_ID", "")

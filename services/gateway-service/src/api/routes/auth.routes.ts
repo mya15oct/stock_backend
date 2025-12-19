@@ -165,6 +165,8 @@ export const createAuthRouter = (): Router => {
             // But we need to make sure we forward the Authorization header too/instead?
             // Backend auth_router.update_profile might inspect different things.
             // For now, let's just proxy with body and headers.
+            console.log("DEBUG GATEWAY INCOMING HEADERS:", JSON.stringify(req.headers)); // DEBUG LOG
+
 
             const url = `${baseUrl}/api/auth/profile`;
             const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -172,6 +174,11 @@ export const createAuthRouter = (): Router => {
             // Forward User ID if available from JWT Middleware
             if (req.headers['x-user-id']) {
                 headers['x-user-id'] = req.headers['x-user-id'] as string;
+            }
+
+            // CRITICAL FIX: Forward Authorization Header
+            if (req.headers.authorization) {
+                headers['Authorization'] = req.headers.authorization;
             }
 
             const upstream = await callUpstream(url, {
