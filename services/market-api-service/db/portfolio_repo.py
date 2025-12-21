@@ -11,7 +11,7 @@ class PortfolioRepo(BaseRepository):
     # --- Portfolios ---
     def get_user_portfolios(self, user_id: str) -> List[Dict]:
         query = """
-            SELECT portfolio_id, name, currency, created_at, is_read_only
+            SELECT portfolio_id, name, currency, goal_type, target_amount, note, created_at
             FROM portfolio_oltp.portfolios
             WHERE user_id = %s
             ORDER BY created_at DESC
@@ -20,7 +20,7 @@ class PortfolioRepo(BaseRepository):
 
     def get_portfolio(self, portfolio_id: str) -> Optional[Dict]:
         query = """
-            SELECT portfolio_id, name, is_read_only, user_id
+            SELECT portfolio_id, name, user_id
             FROM portfolio_oltp.portfolios
             WHERE portfolio_id = %s
         """
@@ -28,32 +28,9 @@ class PortfolioRepo(BaseRepository):
 
     def migrate_read_only_column(self):
         """
-        Idempotent migration to add is_read_only column and rename Default Portfolio
+        Obsolete migration.
         """
-        conn = self.get_connection()
-        try:
-            with conn.cursor() as cur:
-                # 1. Add column if not exists
-                cur.execute("SELECT column_name FROM information_schema.columns WHERE table_schema = 'portfolio_oltp' AND table_name = 'portfolios' AND column_name = 'is_read_only'")
-                if not cur.fetchone():
-                    logger.info("Adding is_read_only column...")
-                    cur.execute("ALTER TABLE portfolio_oltp.portfolios ADD COLUMN is_read_only BOOLEAN DEFAULT FALSE")
-
-                # 2. Rename and set read-only
-                logger.info("Running portfolio data migration...")
-                cur.execute("UPDATE portfolio_oltp.portfolios SET name = 'Demo Portfolio', is_read_only = TRUE WHERE name = 'Default Portfolio'")
-                
-                # Ensure it is set even if already renamed
-                cur.execute("UPDATE portfolio_oltp.portfolios SET is_read_only = TRUE WHERE name = 'Demo Portfolio'")
-                
-            conn.commit()
-            logger.info("Portfolio migration completed.")
-        except Exception as e:
-            conn.rollback()
-            logger.error(f"Migration failed: {e}")
-            # Don't raise, allowing app to start even if migration fails (though it shouldn't)
-        finally:
-            conn.close()
+        pass
 
     def create_portfolio(self, user_id: str, name: str, currency: str = 'USD', 
                         goal_type: str = 'VALUE', target_amount: float = None, note: str = None) -> str:

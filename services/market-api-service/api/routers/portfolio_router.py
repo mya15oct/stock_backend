@@ -56,6 +56,8 @@ async def add_transaction(
             note=transaction.note
         )
         return {"success": True, "data": {"transaction_id": tx_id}}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         logger.error(f"Error adding transaction: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -100,6 +102,8 @@ async def create_portfolio(
             note=portfolio.note
         )
         return {"success": True, "data": {"portfolio_id": p_id}}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         logger.error(f"Error creating portfolio: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -152,6 +156,8 @@ async def update_transaction(
         if not success:
              raise HTTPException(status_code=404, detail="Transaction not found")
         return {"success": True, "message": "Transaction updated"}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
     except HTTPException:
         raise
     except Exception as e:

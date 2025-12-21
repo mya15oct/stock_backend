@@ -25,12 +25,26 @@ class PortfolioService:
 
     def create_portfolio(self, user_id: str, name: str, currency: str = 'USD', 
                         goal_type: str = 'VALUE', target_amount: float = None, note: str = None) -> str:
+        
+        # 1. Validate Target Amount
+        if target_amount is not None and target_amount > 600_000_000_000:
+            raise ValueError("Amount is too large, please enter a smaller target amount")
+
+        # 2. Validate Uniqueness
+        existing_portfolios = self.repo.get_user_portfolios(user_id)
+        # Check case-insensitive? User said "check if portfolio with same name exists". Usually strict.
+        # Let's do exact match to start, maybe case-insensitive for better UX? 
+        # "Alpha" vs "alpha". Let's assume strict for now but maybe clean input.
+        if any(p['name'] == name for p in existing_portfolios):
+            raise ValueError(f"Portfolio '{name}' already exists.")
+
         return self.repo.create_portfolio(user_id, name, currency, goal_type, target_amount, note)
 
     def delete_portfolio(self, portfolio_id: str, user_id: str) -> bool:
         portfolio = self.repo.get_portfolio(portfolio_id)
-        if portfolio and portfolio.get('is_read_only'):
-             raise ValueError("Cannot delete a read-only portfolio.")
+        if not portfolio:
+             # Or just let delete_portfolio handle it (it checks user_id)
+             return False
         return self.repo.delete_portfolio(portfolio_id, user_id)
 
     def add_transaction(self, portfolio_id: str, ticker: str, 
@@ -41,8 +55,6 @@ class PortfolioService:
         portfolio = self.repo.get_portfolio(portfolio_id)
         if not portfolio:
             raise ValueError("Portfolio not found")
-        if portfolio.get('is_read_only'):
-             raise ValueError("Annot modify a read-only portfolio. Please create a new portfolio.")
 
         
         # 1. Validate Numeric Inputs
@@ -52,6 +64,16 @@ class PortfolioService:
             raise ValueError("Price cannot be negative")
         if fee < 0:
             raise ValueError("Fee cannot be negative")
+
+        # 2. Validate Sell Limit
+        if transaction_type == 'SELL':
+            # Check current ownership
+            holdings = self.repo.get_holdings(portfolio_id, include_sold=True)
+            current_holding = next((h for h in holdings if h['stock_ticker'] == ticker), None)
+            current_shares = float(current_holding['total_shares']) if current_holding else 0.0
+            
+            if current_shares < quantity:
+                raise ValueError(f"Cannot sell {quantity} shares. You only own {current_shares:g} shares.")
 
         # 2. Validate Ticker Existence
         # 2. Validate Ticker Existence
@@ -85,8 +107,6 @@ class PortfolioService:
         portfolio = self.repo.get_portfolio(portfolio_id)
         if not portfolio:
             raise ValueError("Portfolio not found")
-        if portfolio.get('is_read_only'):
-             raise ValueError("Cannot modify a read-only portfolio.")
 
         # 1. Get Current State
         holdings = self.repo.get_holdings(portfolio_id, include_sold=True) # Include sold to catch 0-share states
@@ -129,8 +149,6 @@ class PortfolioService:
         portfolio = self.repo.get_portfolio(portfolio_id)
         if not portfolio:
              raise ValueError("Portfolio not found")
-        if portfolio.get('is_read_only'):
-             raise ValueError("Cannot modify a read-only portfolio.")
 
         
         # 1. Validate Numeric Inputs
@@ -337,12 +355,12 @@ class PortfolioService:
 
     def delete_transaction(self, transaction_id: str, portfolio_id: str) -> bool:
         portfolio = self.repo.get_portfolio(portfolio_id)
-        if portfolio and portfolio.get('is_read_only'):
-             raise ValueError("Cannot modify a read-only portfolio.")
+        if not portfolio:
+             # Handle missing?
+             pass 
         return self.repo.delete_transaction(transaction_id, portfolio_id)
 
     def delete_holding(self, portfolio_id: str, ticker: str) -> bool:
         portfolio = self.repo.get_portfolio(portfolio_id)
-        if portfolio and portfolio.get('is_read_only'):
-             raise ValueError("Cannot modify a read-only portfolio.")
+        # Check? 
         return self.repo.delete_holding(portfolio_id, ticker)
