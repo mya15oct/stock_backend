@@ -1,7 +1,7 @@
 # SERVICE BOUNDARY: This service must NOT read Kafka or Redis Streams.
 # It can access Postgres and Redis Cache only.
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request as FastAPIRequest
 from fastapi.middleware.cors import CORSMiddleware
 from api.routers import (
     quote_router,
@@ -17,16 +17,22 @@ from api.routers import (
     summary_router,
     companies_router,
     market_router,
-    # portfolio_router,
-    # auth_router,
+    portfolio_router,
+    auth_router,
 )
+from db.portfolio_repo import PortfolioRepo
 from config.settings import settings
 from shared.python.utils.logging_config import get_logger
 from shared.python.utils.env import validate_env
 
+
 validate_env(["DB_PASSWORD"])
 
 logger = get_logger(__name__)
+
+# DEBUG: Check SMTP Settings
+print(f"DEBUG SMTP: SERVER={settings.MAIL_SERVER}, PORT={settings.MAIL_PORT}, USER={settings.MAIL_USERNAME}, PASS_LEN={len(settings.MAIL_PASSWORD) if settings.MAIL_PASSWORD else 0}")
+
 
 app = FastAPI(
     title="Market Data API",
@@ -44,6 +50,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Starting up...")
+    try:
+        # Run DB Migrations
+        # PortfolioRepo().migrate_read_only_column()
+        pass
+    except Exception as e:
+        logger.error(f"Startup migration failed: {e}")
+
+@app.middleware("http")
+async def log_requests(request: FastAPIRequest, call_next):
+    logger.info(f"Incoming Request: {request.method} {request.url}")
+    auth = request.headers.get("Authorization")
+    if auth:
+        logger.info(f"Authorization Header: {auth[:20]}...") # Log start of token
+    else:
+        logger.info("Authorization Header: MISSING")
+    
+    response = await call_next(request)
+    return response
+
 # Include Routers (removed financials_legacy_router)
 app.include_router(quote_router.router)
 app.include_router(profile_router.router)
@@ -58,8 +86,8 @@ app.include_router(companies_router.router)
 app.include_router(refresh_router.router)
 app.include_router(summary_router.router)
 app.include_router(market_router.router)
-# app.include_router(portfolio_router.router)
-# app.include_router(auth_router.router)
+app.include_router(portfolio_router.router)
+app.include_router(auth_router.router)
 
 @app.get("/", tags=["System"])
 async def root():

@@ -69,6 +69,12 @@ class MarketMetadataService:
       
       return volumes
 
+  def check_stock_exists(self, ticker: str) -> bool:
+      """
+      Check if a stock ticker exists.
+      """
+      return self.repo.check_stock_exists(ticker)
+
 
 
 

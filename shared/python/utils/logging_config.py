@@ -25,7 +25,11 @@ def _configure_logging() -> None:
     with _configure_lock:
         if _configured:
             return
-        logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
+        logging.basicConfig(
+            level=LOG_LEVEL,
+            format=LOG_FORMAT,
+            force=True  # Force configuration even if root logger is already configured
+        )
         _configured = True
 
 
